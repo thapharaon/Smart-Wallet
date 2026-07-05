@@ -1,0 +1,1434 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Wallet Pro - Quản Lý Tài Chính Cao Cấp</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* Custom Keyframes cho các đốm màu nền chuyển động nghệ thuật */
+        @keyframes float-blob {
+            0% { transform: translate(0px, 0px) scale(1); }
+            33% { transform: translate(40px, -60px) scale(1.15); }
+            66% { transform: translate(-30px, 30px) scale(0.9); }
+            100% { transform: translate(0px, 0px) scale(1); }
+        }
+        .animate-blob {
+            animation: float-blob 12s infinite ease-in-out;
+        }
+        .animation-delay-2000 { animation-delay: 2s; }
+        .animation-delay-4000 { animation-delay: 4s; }
+
+        /* Tùy biến thanh cuộn mượt */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.3); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.5); }
+
+        /* Hiệu ứng vẽ dấu tick động bằng SVG */
+        @keyframes stroke {
+            100% { stroke-dashoffset: 0; }
+        }
+        @keyframes scale {
+            0%, 100% { transform: none; }
+            50% { transform: scale3d(1.1, 1.1, 1); }
+        }
+        @keyframes fill {
+            100% { box-shadow: inset 0px 0px 0px 30px #10b981; }
+        }
+        .checkmark-circle {
+            stroke-dasharray: 166;
+            stroke-dashoffset: 166;
+            stroke-width: 2;
+            stroke-miterlimit: 10;
+            stroke: #10b981;
+            fill: none;
+            animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+        }
+        .checkmark {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: block;
+            stroke-width: 2;
+            stroke: #fff;
+            stroke-miterlimit: 10;
+            box-shadow: inset 0px 0px 0px #10b981;
+            animation: fill .4s ease-in-out .4s forwards, scale .3s ease-in-out .9s forwards;
+        }
+        .checkmark-check {
+            transform-origin: 50% 50%;
+            stroke-dasharray: 48;
+            stroke-dashoffset: 48;
+            animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) .8s forwards;
+        }
+
+        /* Hỗ trợ biến màu nền động Light/Dark mượt mà */
+        body {
+            transition: background-color 0.4s ease, color 0.4s ease;
+        }
+        .glass-panel {
+            transition: background-color 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
+        }
+
+        /* ĐẢM BẢO NÚT CHỌN LỊCH HIỂN THỊ RÕ RÀNG VÀ CÓ THỂ CLICK ĐƯỢC */
+        input[type="month"]::-webkit-calendar-picker-indicator {
+            display: block !important;
+            background-color: transparent;
+            cursor: pointer;
+            padding: 2px;
+            border-radius: 4px;
+            filter: invert(0.5); /* Cân bằng độ sáng cho icon lịch */
+        }
+        .dark input[type="month"]::-webkit-calendar-picker-indicator {
+            filter: invert(1); /* Hiện màu trắng khi ở chế độ tối */
+        }
+    </style>
+</head>
+<body id="app-body" class="bg-slate-950 font-sans antialiased text-slate-100 pb-24 md:pb-6 min-h-screen relative overflow-x-hidden">
+
+    <div id="aurora-bg" class="fixed inset-0 z-0 overflow-hidden pointer-events-none opacity-40 transition-opacity duration-500">
+        <div id="blob-1" class="absolute top-10 -left-16 w-80 h-80 bg-teal-500 rounded-full blur-[100px] animate-blob"></div>
+        <div id="blob-2" class="absolute top-1/3 -right-16 w-80 h-80 bg-purple-500 rounded-full blur-[100px] animate-blob animation-delay-2000"></div>
+        <div id="blob-3" class="absolute -bottom-10 left-1/3 w-80 h-80 bg-blue-500 rounded-full blur-[100px] animate-blob animation-delay-4000"></div>
+    </div>
+
+    <div id="success-toast" class="fixed top-6 left-1/2 transform -translate-x-1/2 z-[110] bg-slate-900/95 backdrop-blur-md border border-slate-800 shadow-2xl px-6 py-4 rounded-2xl flex items-center gap-4 min-w-[280px] pointer-events-none opacity-0 translate-y-[-20px] transition-all duration-500 ease-out hidden">
+        <div class="flex-shrink-0">
+            <svg class="checkmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+                <circle class="checkmark-circle" cx="26" cy="26" r="25" fill="none"/>
+                <path class="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+            </svg>
+        </div>
+        <div>
+            <h4 id="toast-title" class="font-black text-sm uppercase tracking-wide">Thành công</h4>
+            <p id="toast-msg" class="text-xs text-slate-400 mt-0.5 font-medium">Giao dịch đã được ghi nhận mượt mà.</p>
+        </div>
+    </div>
+
+    <div id="splash-screen" class="fixed inset-0 bg-slate-950 z-[100] flex flex-col items-center justify-center transition-opacity duration-700 ease-in-out">
+        <div class="text-center space-y-4 animate-bounce">
+            <div class="inline-flex p-5 bg-teal-500/10 border border-teal-500/30 rounded-3xl text-teal-400 text-4xl shadow-xl shadow-teal-500/10">
+                <i class="fa-solid fa-wallet animate-pulse"></i>
+            </div>
+            <h1 class="text-2xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-blue-400">SMART WALLET PRO</h1>
+            <p class="text-xs text-slate-400 font-medium tracking-widest uppercase">Đang tối ưu không gian tài chính...</p>
+        </div>
+    </div>
+
+    <div class="max-w-6xl mx-auto p-3 md:p-6 relative z-10">
+        
+        <header id="app-header" class="bg-teal-600/80 backdrop-blur-md text-white rounded-2xl p-4 md:p-6 shadow-xl border border-white/10 mb-6 flex justify-between items-center transition-all duration-500">
+            <div>
+                <h1 class="text-xl md:text-2xl font-black tracking-wide"><i class="fa-solid fa-wallet mr-2"></i>Smart Wallet</h1>
+                <p id="txt-app-desc" class="text-xs text-white/70 mt-0.5 font-medium">Quản lý tài chính cá nhân đa ngân sách</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <button onclick="toggleDarkMode()" id="btn-theme-toggle" class="p-2.5 bg-white/15 hover:bg-white/25 active:scale-95 rounded-xl border border-white/10 shadow-md text-sm md:text-base transition-all cursor-pointer flex items-center justify-center" title="Thay đổi giao diện nghệ thuật">
+                    <i id="theme-toggle-icon" class="fa-solid fa-sun text-amber-300"></i>
+                </button>
+                <div class="text-right hidden sm:block">
+                    <span class="text-xs bg-white/15 px-3 py-1.5 rounded-full font-bold border border-white/10 shadow-inner">
+                        <i class="fa-solid fa-cube mr-1 text-teal-300"></i> <span id="txt-header-subject">Chuyên đề thực tế 2</span>
+                    </span>
+                </div>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-3 gap-3 mb-6">
+            <div class="glass-panel bg-slate-900/60 backdrop-blur-md p-3 md:p-4 rounded-xl shadow-lg border border-slate-800 hover:border-slate-700 transition-all duration-300 transform hover:-translate-y-0.5">
+                <p id="lbl-total-income" class="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-wider">Tổng Thu</p>
+                <h3 id="stat-income" class="text-sm md:text-xl font-black text-emerald-400 mt-0.5 tracking-tight">0đ</h3>
+            </div>
+            <div class="glass-panel bg-slate-900/60 backdrop-blur-md p-3 md:p-4 rounded-xl shadow-lg border border-slate-800 hover:border-slate-700 transition-all duration-300 transform hover:-translate-y-0.5">
+                <p id="lbl-total-expense" class="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-wider">Tổng Chi</p>
+                <h3 id="stat-expense" class="text-sm md:text-xl font-black text-rose-400 mt-0.5 tracking-tight">0đ</h3>
+            </div>
+            <div class="glass-panel bg-slate-900/60 backdrop-blur-md p-3 md:p-4 rounded-xl shadow-lg border border-slate-800 hover:border-slate-700 transition-all duration-300 transform hover:-translate-y-0.5">
+                <p id="lbl-total-balance" class="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-wider">Còn Lại</p>
+                <h3 id="stat-balance" class="text-sm md:text-xl font-black mt-0.5 tracking-tight">0đ</h3>
+            </div>
+        </div>
+
+        <main class="mb-6">
+            
+            <section id="tab-input" class="tab-content glass-panel transition-all duration-300 transform translate-y-0 opacity-100 max-w-lg mx-auto bg-slate-900/60 backdrop-blur-md p-5 md:p-6 rounded-2xl shadow-xl border border-slate-800">
+                <h2 id="lbl-input-title" class="text-base md:text-lg font-bold mb-4 flex items-center">
+                    <i class="fa-solid fa-circle-plus mr-2 header-icon-color"></i>Ghi Chép Giao Dịch
+                </h2>
+                <div class="flex bg-slate-950/80 p-1 rounded-xl mb-4 border border-slate-800 input-bg-toggle">
+                    <button onclick="setTxType('chi')" id="btn-type-chi" class="w-1/2 py-2 rounded-lg text-xs md:text-sm font-bold bg-slate-800 text-rose-400 shadow-md transition-all active:scale-95 cursor-pointer">TIỀN CHI</button>
+                    <button onclick="setTxType('thu')" id="btn-type-thu" class="w-1/2 py-2 rounded-lg text-xs md:text-sm font-bold text-slate-400 hover:text-slate-200 transition-all active:scale-95 cursor-pointer">TIỀN THU</button>
+                </div>
+                <form onsubmit="addTransaction(event)" class="space-y-4">
+                    <div>
+                        <label id="lbl-f-date" class="block text-xs font-bold text-slate-400 mb-1">Ngày tháng</label>
+                        <input type="date" id="f-date" required onclick="this.showPicker()" class="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-teal-400 transition-colors input-field-toggle cursor-pointer">
+                    </div>
+                    <div>
+                        <label id="lbl-f-amount" class="block text-xs font-bold text-slate-400 mb-1">Số tiền</label>
+                        <input type="number" id="f-amount" min="1" required placeholder="..." class="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-teal-400 transition-colors font-bold text-teal-400 text-base input-field-toggle">
+                    </div>
+                    <div>
+                        <label id="lbl-f-category" class="block text-xs font-bold text-slate-400 mb-1">Danh mục</label>
+                        <select id="f-category" onchange="checkCustomCategory('f-category', 'custom-cat-container')" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-teal-400 transition-colors input-field-toggle"></select>
+                    </div>
+                    <div id="custom-cat-container" class="hidden">
+                        <label id="lbl-f-custom" class="block text-xs font-bold text-rose-400 mb-1">Tên danh mục tự điền</label>
+                        <input type="text" id="f-custom-category" class="w-full bg-slate-950 border border-rose-900/50 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-rose-400 font-medium input-field-toggle">
+                    </div>
+                    <div>
+                        <label id="lbl-f-note" class="block text-xs font-bold text-slate-400 mb-1">Ghi chú</label>
+                        <input type="text" id="f-note" class="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-teal-400 transition-colors input-field-toggle">
+                    </div>
+                    <button type="submit" id="btn-submit-form" class="w-full bg-teal-600 hover:bg-teal-500 text-white font-bold py-2.5 rounded-xl transition-all shadow-lg active:scale-[0.98] transform hover:-translate-y-0.5 btn-theme-color cursor-pointer">Lưu Giao Dịch</button>
+                </form>
+            </section>
+
+            <section id="tab-calendar" class="tab-content transition-all duration-300 transform translate-y-4 opacity-0 hidden space-y-6">
+                <div class="glass-panel bg-slate-900/60 backdrop-blur-md p-4 md:p-6 rounded-2xl shadow-xl border border-slate-800">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 id="calendar-title" class="text-base md:text-lg font-bold">Tháng -- / ----</h2>
+                        <div class="flex gap-1">
+                            <button onclick="changeMonth(-1)" class="p-2 bg-slate-800 hover:bg-slate-700 active:scale-90 rounded-lg text-xs transition-all cursor-pointer button-bg-toggle"><i class="fa-solid fa-chevron-left"></i></button>
+                            <button onclick="changeMonth(1)" class="p-2 bg-slate-800 hover:bg-slate-700 active:scale-90 rounded-lg text-xs transition-all cursor-pointer button-bg-toggle"><i class="fa-solid fa-chevron-right"></i></button>
+                        </div>
+                    </div>
+                    <div id="calendar-days-header" class="grid grid-cols-7 gap-1 text-center font-bold text-xs text-slate-500 border-b border-slate-800 pb-2 border-toggle">
+                        <div>CN</div><div>T2</div><div>T3</div><div>T4</div><div>T5</div><div>T6</div><div>T7</div>
+                    </div>
+                    <div id="calendar-grid" class="grid grid-cols-7 gap-1 mt-2 text-xs"></div>
+                </div>
+
+                <div class="glass-panel bg-slate-900/60 backdrop-blur-md p-4 md:p-6 rounded-2xl shadow-xl border border-slate-800">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
+                        <h2 id="lbl-timeline-title" class="text-base md:text-lg font-bold">Dòng Thời Gian Giao Dịch</h2>
+                        <div class="relative w-full sm:w-64">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-500 text-xs"></i>
+                            <input type="text" id="search-tx" oninput="renderAll()" class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-3 py-1.5 text-xs focus:outline-none focus:border-teal-400 input-field-toggle">
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs md:text-sm">
+                            <thead>
+                                <tr id="table-header-row" class="text-[10px] md:text-xs font-bold uppercase text-slate-500 border-b border-slate-800 border-toggle">
+                                    <th class="py-2">Ngày</th>
+                                    <th class="py-2">Loại</th>
+                                    <th class="py-2">Danh mục / Ghi chú</th>
+                                    <th class="py-2 text-right">Số tiền</th>
+                                    <th class="py-2 text-center">Hành động</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tx-table-body" class="divide-y divide-slate-800/50 font-medium table-divide-toggle"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <section id="tab-report" class="tab-content glass-panel transition-all duration-300 transform translate-y-4 opacity-0 hidden bg-slate-900/60 backdrop-blur-md p-4 md:p-6 rounded-2xl shadow-xl border border-slate-800">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6 border-b border-slate-800 pb-4 border-toggle">
+                    <h2 id="lbl-report-title" class="text-base md:text-lg font-bold"><i class="fa-solid fa-chart-pie mr-2 header-icon-color"></i>Biểu Đồ Thống Kê</h2>
+                    <div class="flex flex-wrap gap-2 w-full sm:w-auto">
+                        <input type="month" id="report-month-select" onchange="renderReport()" onclick="this.showPicker()" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs focus:outline-none font-bold input-field-toggle cursor-pointer">
+                        <select id="report-type" onchange="renderReport()" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs focus:outline-none font-bold input-field-toggle">
+                            </select>
+                    </div>
+                </div>
+                <div class="w-full max-w-sm mx-auto h-72 flex items-center justify-center filter drop-shadow-lg">
+                    <canvas id="reportChart"></canvas>
+                </div>
+            </section>
+
+            <section id="tab-budget" class="tab-content glass-panel transition-all duration-300 transform translate-y-4 opacity-0 hidden bg-slate-900/60 backdrop-blur-md p-4 md:p-6 rounded-2xl shadow-xl border border-slate-800 max-w-xl mx-auto space-y-6">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3 border-toggle">
+                    <h2 id="lbl-budget-title" class="text-base md:text-lg font-bold"><i class="fa-solid fa-bullseye mr-2 header-icon-color"></i>Thiết Lập Đa Ngân Sách</h2>
+                    <div>
+                        <input type="month" id="budget-month-select" onchange="renderBudgetTab()" onclick="this.showPicker()" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs focus:outline-none font-bold input-field-toggle cursor-pointer">
+                    </div>
+                </div>
+                
+                <div class="p-4 rounded-xl border border-slate-800 space-y-3 input-bg-toggle">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label id="lbl-b-type" class="block text-[11px] font-bold text-slate-400 mb-1">Loại Ngân Sách</label>
+                            <select id="budget-category-select" onchange="checkBudgetCustomCategory()" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-2 py-1.5 text-xs font-medium focus:outline-none input-field-toggle"></select>
+                        </div>
+                        <div>
+                            <label id="lbl-b-limit" class="block text-[11px] font-bold text-slate-400 mb-1">Số Tiền Hạn Mức</label>
+                            <input type="number" id="budget-amount-input" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-2 py-1.5 text-xs font-bold focus:outline-none focus:border-teal-400 input-field-toggle">
+                        </div>
+                    </div>
+                    
+                    <div id="budget-custom-cat-container" class="hidden">
+                        <label id="lbl-b-custom-name" class="block text-[11px] font-bold text-rose-400 mb-1">Nhập tên loại ngân sách tự chọn của bạn</label>
+                        <input type="text" id="budget-custom-name" class="w-full bg-slate-900 border border-rose-950 rounded-xl px-3 py-1.5 text-xs font-medium focus:outline-none input-field-toggle">
+                    </div>
+
+                    <div class="flex justify-end">
+                        <button onclick="saveBudget()" id="lbl-b-btn" class="w-full sm:w-48 bg-teal-600 hover:bg-teal-500 text-white font-bold py-2 rounded-xl text-xs transition-all active:scale-95 btn-theme-color cursor-pointer">Thêm/Cập Nhật Ngân Sách</button>
+                    </div>
+                </div>
+
+                <div class="space-y-4 font-sans" id="budget-list-container"></div>
+            </section>
+
+            <section id="tab-settings" class="tab-content glass-panel transition-all duration-300 transform translate-y-4 opacity-0 hidden bg-slate-900/60 backdrop-blur-md p-4 md:p-6 rounded-2xl shadow-xl border border-slate-800 max-w-xl mx-auto space-y-6">
+                <h2 id="lbl-sett-title" class="text-base md:text-lg font-bold border-b border-slate-800 pb-2 border-toggle"><i class="fa-solid fa-sliders mr-2 header-icon-color"></i>Cài Đặt Hệ Thống</h2>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label id="lbl-sett-lang" class="block text-xs font-bold text-slate-400 mb-1">Ngôn ngữ (Language)</label>
+                        <select id="sett-lang" onchange="changeLanguage(this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs focus:outline-none font-bold input-field-toggle">
+                            <option value="vi">Tiếng Việt</option>
+                            <option value="en">English</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label id="lbl-sett-currency" class="block text-xs font-bold text-slate-400 mb-1">Đơn vị tiền tệ (Currency)</label>
+                        <select id="sett-currency" onchange="changeCurrency(this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs focus:outline-none font-bold input-field-toggle">
+                            <option value="đ">VND (đ)</option>
+                            <option value="$">USD ($)</option>
+                            <option value="€">EUR (€)</option>
+                            <option value="¥">JPY (¥)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="p-4 rounded-xl space-y-3 border border-slate-800 input-bg-toggle">
+                    <h3 id="lbl-sett-warn-title" class="text-xs font-bold text-slate-400 uppercase tracking-wider">Cấu Hình Ngưỡng Cảnh Báo Ngân Sách</h3>
+                    <div class="grid grid-cols-2 gap-4 text-xs">
+                        <div>
+                            <label id="lbl-sett-warn-orange" class="block text-slate-500 mb-1">Cảnh báo Vàng (Sắp chạm ngưỡng %)</label>
+                            <input type="number" id="sett-warn-orange" min="1" max="99" onchange="saveWarningThresholds()" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 font-bold focus:outline-none input-field-toggle">
+                        </div>
+                        <div>
+                            <label id="lbl-sett-warn-red" class="block text-slate-500 mb-1">Cảnh báo Đỏ (Vượt hạn mức %)</label>
+                            <input type="number" id="sett-warn-red" min="100" max="500" onchange="saveWarningThresholds()" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 font-bold focus:outline-none input-field-toggle">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-4 rounded-xl space-y-3 border border-slate-800 input-bg-toggle">
+                    <h3 id="lbl-sett-cat-title" class="text-xs font-bold text-slate-400 uppercase tracking-wider">Quản Lý Danh Mục Mặc Định</h3>
+                    <div class="flex gap-2">
+                        <select id="sett-cat-type" onchange="renderSettingsCategoryList()" class="bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs font-bold focus:outline-none input-field-toggle">
+                            <option value="chi">Danh mục Tiền Chi</option>
+                            <option value="thu">Danh mục Tiền Thu</option>
+                        </select>
+                        <input type="text" id="sett-cat-new-name" placeholder="Tên danh mục mới..." class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1 text-xs focus:outline-none font-medium input-field-toggle">
+                        <button onclick="addCustomConfigCategory()" class="bg-teal-600 text-white font-bold px-3 py-1 rounded-xl text-xs active:scale-90 transition-all btn-theme-color cursor-pointer"><i class="fa-solid fa-plus"></i></button>
+                    </div>
+                    <div id="sett-cat-list" class="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-1">
+                        </div>
+                </div>
+
+                <div class="p-4 rounded-xl space-y-3 border border-slate-800 input-bg-toggle">
+                    <h3 id="lbl-sett-backup-title" class="text-xs font-bold text-slate-400 uppercase tracking-wider">Sao Lưu & Khôi Phục</h3>
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="exportDataToJSON()" class="bg-teal-600 hover:bg-teal-500 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 transition-all active:scale-95 btn-theme-color cursor-pointer">
+                            <i class="fa-solid fa-cloud-arrow-down"></i> <span id="lbl-sett-btn-export">Xuất dữ liệu Sao lưu</span>
+                        </button>
+                        <label class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 cursor-pointer transition-all active:scale-95 button-bg-toggle text-toggle">
+                            <i class="fa-solid fa-cloud-arrow-up"></i> <span id="lbl-sett-btn-import">Nhập dữ liệu cũ</span>
+                            <input type="file" id="import-file-input" accept=".json" onchange="importDataFromJSON(event)" class="hidden">
+                        </label>
+                    </div>
+                </div>
+
+                <div class="pt-2 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-t border-slate-800 border-toggle">
+                    <div>
+                        <label id="lbl-sett-theme" class="block text-xs font-bold text-slate-400 mb-1.5">Màu sắc chủ đạo</label>
+                        <div class="flex gap-2">
+                            <button onclick="changeTheme('teal', '#0d9488')" class="w-7 h-7 rounded-full bg-teal-600 border-2 border-slate-950 dark:border-slate-950 border-white-toggle hover:scale-110 active:scale-90 transition-all cursor-pointer"></button>
+                            <button onclick="changeTheme('blue', '#2563eb')" class="w-7 h-7 rounded-full bg-blue-600 border-2 border-slate-950 dark:border-slate-950 border-white-toggle hover:scale-110 active:scale-90 transition-all cursor-pointer"></button>
+                            <button onclick="changeTheme('purple', '#9333ea')" class="w-7 h-7 rounded-full bg-purple-600 border-2 border-slate-950 dark:border-slate-950 border-white-toggle hover:scale-110 active:scale-90 transition-all cursor-pointer"></button>
+                            <button onclick="changeTheme('rose', '#e11d48')" class="w-7 h-7 rounded-full bg-rose-600 border-2 border-slate-950 dark:border-slate-950 border-white-toggle hover:scale-110 active:scale-90 transition-all cursor-pointer"></button>
+                            <button onclick="changeTheme('orange', '#ea580c')" class="w-7 h-7 rounded-full bg-orange-600 border-2 border-slate-950 dark:border-slate-950 border-white-toggle hover:scale-110 active:scale-90 transition-all cursor-pointer"></button>
+                        </div>
+                    </div>
+                    <div class="text-left sm:text-right">
+                        <label id="lbl-sett-danger" class="block text-xs font-bold text-rose-400 mb-1.5">Khu vực nguy hiểm</label>
+                        <button onclick="clearAllData()" id="lbl-sett-btn-clear" class="bg-rose-950/20 hover:bg-rose-950/40 text-rose-400 font-bold px-4 py-2 rounded-xl text-xs border border-rose-900/40 transition-colors cursor-pointer">Xóa tất cả dữ liệu</button>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <nav class="fixed bottom-3 left-3 right-3 bg-slate-900/80 backdrop-blur-lg border border-slate-800/80 shadow-2xl rounded-2xl px-2 py-1.5 md:relative md:bottom-0 md:left-0 md:right-0 md:rounded-2xl md:mb-6 z-50 nav-panel-toggle">
+            <div class="flex justify-around items-center max-w-md mx-auto md:max-w-none">
+                <button onclick="switchTab('tab-input')" id="nav-tab-input" class="flex flex-col items-center gap-1 p-2 text-teal-400 font-bold text-[10px] md:text-xs transition-all nav-btn scale-105 cursor-pointer">
+                    <i class="fa-solid fa-pen-to-square text-base md:text-lg"></i><span id="nav-txt-input">Nhập Liệu</span>
+                </button>
+                <button onclick="switchTab('tab-calendar')" id="nav-tab-calendar" class="flex flex-col items-center gap-1 p-2 text-slate-500 font-medium text-[10px] md:text-xs transition-all nav-btn cursor-pointer">
+                    <i class="fa-solid fa-calendar-days text-base md:text-lg"></i><span id="nav-txt-calendar">Lịch & GD</span>
+                </button>
+                <button onclick="switchTab('tab-report')" id="nav-tab-report" class="flex flex-col items-center gap-1 p-2 text-slate-500 font-medium text-[10px] md:text-xs transition-all nav-btn cursor-pointer">
+                    <i class="fa-solid fa-chart-pie text-base md:text-lg"></i><span id="nav-txt-report">Báo Cáo</span>
+                </button>
+                <button onclick="switchTab('tab-budget')" id="nav-tab-budget" class="flex flex-col items-center gap-1 p-2 text-slate-500 font-medium text-[10px] md:text-xs transition-all nav-btn cursor-pointer">
+                    <i class="fa-solid fa-bullseye text-base md:text-lg"></i><span id="nav-txt-budget">Ngân Sách</span>
+                </button>
+                <button onclick="switchTab('tab-settings')" id="nav-tab-settings" class="flex flex-col items-center gap-1 p-2 text-slate-500 font-medium text-[10px] md:text-xs transition-all nav-btn cursor-pointer">
+                    <i class="fa-solid fa-sliders text-base md:text-lg"></i><span id="nav-txt-settings">Cài Đặt</span>
+                </button>
+            </div>
+        </nav>
+    </div>
+
+    <div id="edit-modal" class="fixed inset-0 bg-black/70 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden transition-all">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4 transform scale-100 transition-transform modal-panel-toggle">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-2 border-toggle">
+                <h3 id="lbl-modal-title" class="text-base font-bold"><i class="fa-solid fa-user-gear mr-1 modal-icon-color"></i>Chỉnh Sửa Giao Dịch</h3>
+                <button onclick="closeEditModal()" class="text-slate-500 hover:text-slate-300 transition-colors cursor-pointer text-toggle"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form onsubmit="updateTransaction(event)" class="space-y-3 text-xs md:text-sm">
+                <input type="hidden" id="edit-id">
+                <input type="hidden" id="edit-type">
+                <div>
+                    <label id="lbl-m-date" class="block text-[11px] font-bold text-slate-400 mb-1">Ngày tháng</label>
+                    <input type="date" id="edit-date" required onclick="this.showPicker()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 focus:outline-none input-field-toggle cursor-pointer">
+                </div>
+                <div>
+                    <label id="lbl-m-amount" class="block text-[11px] font-bold text-slate-400 mb-1">Số tiền</label>
+                    <input type="number" id="edit-amount" required class="w-full bg-slate-950 border border-slate-800 text-teal-400 rounded-xl px-3 py-2 focus:outline-none font-bold input-field-toggle">
+                </div>
+                <div>
+                    <label id="lbl-m-category" class="block text-[11px] font-bold text-slate-400 mb-1">Danh mục</label>
+                    <select id="edit-category" onchange="checkCustomCategory('edit-category', 'edit-custom-cat-container')" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 focus:outline-none input-field-toggle"></select>
+                </div>
+                <div id="edit-custom-cat-container" class="hidden">
+                    <label id="lbl-m-custom" class="block text-[11px] font-bold text-rose-400 mb-1">Tên danh mục tự sửa</label>
+                    <input type="text" id="edit-custom-category" class="w-full bg-slate-950 border border-rose-900 rounded-xl px-3 py-2 focus:outline-none font-medium input-field-toggle">
+                </div>
+                <div>
+                    <label id="lbl-m-note" class="block text-[11px] font-bold text-slate-400 mb-1">Ghi chú</label>
+                    <input type="text" id="edit-note" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 focus:outline-none input-field-toggle">
+                </div>
+                <div class="flex gap-2 pt-2">
+                    <button type="button" onclick="closeEditModal()" id="lbl-m-btn-cancel" class="w-1/2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2 rounded-xl text-xs transition-colors cursor-pointer button-bg-toggle text-toggle">Hủy Bỏ</button>
+                    <button type="submit" id="btn-save-modal" class="w-1/2 bg-teal-600 hover:bg-teal-500 text-white font-bold py-2 rounded-xl text-xs transition-colors cursor-pointer">Cập Nhật</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const langDict = {
+            vi: {
+                appDesc: "Quản lý tài chính cá nhân đa ngân sách",
+                subject: "Chuyên đề thực tế 2",
+                inc: "Tổng Thu", exp: "Tổng Chi", bal: "Còn Lại", inputTitle: "Ghi Chép Giao Dịch",
+                date: "Ngày tháng", amount: "Số tiền", cat: "Danh mục", note: "Ghi chú", customCat: "Tên danh mục tự điền",
+                btnSave: "Lưu Giao Dịch", timeline: "Dòng Thời Gian Giao Dịch", placeholderSearch: "Tìm kiếm theo ghi chú, danh mục hoặc ngày...",
+                thDate: "Ngày", thType: "Loại", thDesc: "Danh mục / Ghi chú", thAmount: "Số tiền", thAct: "Hành động",
+                repTitle: "Biểu Đồ Thống Kê", optExp: "Biểu đồ Tiền Chi", optInc: "Biểu đồ Tiền Thu",
+                budTitle: "Thiết Lập Đa Ngân Sách", lblBType: "Loại Ngân Sách", lblBLimit: "Số Tiền Hạn Mức", lblBCustom: "Nhập tên loại ngân sách tự chọn...", btnBUp: "Thêm/Cập Nhật Ngân Sách",
+                settTitle: "Cài Đặt Hệ Thống", settLang: "Ngôn ngữ (Language)", settCur: "Đơn vị tiền tệ (Currency)",
+                settWarnTitle: "Cấu Hình Ngưỡng Cảnh Báo Ngân Sách", settWarnOrange: "Cảnh báo Vàng (Sắp chạm ngưỡng %)", settWarnRed: "Cảnh báo Đỏ (Vượt hạn mức %)",
+                settCatTitle: "Quản Lý Danh Mục Mặc Định", settBackupTitle: "Sao Lưu & Khôi Phục", settBtnExport: "Xuất dữ liệu Sao lưu", settBtnImport: "Nhập dữ liệu cũ",
+                settTheme: "Màu sắc chủ đạo", settDanger: "Khu vực nguy hiểm", settBtnClear: "Xóa tất cả dữ liệu",
+                navIn: "Nhập Liệu", navCal: "Lịch & GD", navRep: "Báo Cáo", navBud: "Ngân Sách", navSet: "Cài Đặt",
+                modTitle: "Chỉnh Sửa Giao Dịch", modCustom: "Tên danh mục tự sửa", modCancel: "Hủy Bỏ", modUpdate: "Cập Nhật",
+                alertSaved: "Đã thêm giao dịch thành công!", alertUpdated: "Đã cập nhật thay đổi thành công!", alertDeleted: "Đã xóa giao dịch thành công!",
+                alertDelConf: "Bạn có thực sự muốn xóa bỏ giao dịch này?",
+                alertDelBud: "Bạn có muốn xóa mục ngân sách của '{cat}'?", alertClearConf: "Xác nhận xóa toàn bộ dữ liệu? Thao tác này không thể hoàn tác.",
+                alertCleaned: "Hệ thống đã được làm sạch!", alertBudSucess: "Đã thiết lập ngân sách cho mục: ", alertCustomCatReq: "Vui lòng nhập tên danh mục!",
+                alertImportSuccess: "Khôi phục dữ liệu thành công!", alertImportFail: "File dữ liệu không hợp lệ!",
+                noData: "Không có dữ liệu", budgetSafe: "An toàn", budgetWarning: "Sắp chạm ngưỡng ⚡", budgetDanger: "Thâm hụt! ⚠️", budgetGeneral: "Ngân Sách Chung (Tổng)", budgetLimitLbl: "Hạn mức: ", customOptText: "✨ Khác (Tự nhập...)"
+            },
+            en: {
+                appDesc: "Multi-budget personal financial tracker",
+                subject: "Practical Project 2",
+                inc: "Total Income", exp: "Total Expense", bal: "Net Balance", inputTitle: "Transaction Logger",
+                date: "Date", amount: "Amount", cat: "Category", note: "Note", customCat: "Custom Category Name",
+                btnSave: "Save Transaction", timeline: "Transaction Timeline", placeholderSearch: "Search by note, category or date...",
+                thDate: "Date", thType: "Type", thDesc: "Category / Note", thAmount: "Amount", thAct: "Action",
+                repTitle: "Statistical Analytics", optExp: "Expense Chart", optInc: "Income Chart",
+                budTitle: "Multi-Budget Management", lblBType: "Budget Category", lblBLimit: "Limit Amount", lblBCustom: "Enter custom budget name...", btnBUp: "Add/Update Budget",
+                settTitle: "System Settings", settLang: "Language", settCur: "Currency",
+                settWarnTitle: "Budget Alert Threshold Configuration", settWarnOrange: "Yellow Alert (Near limit %)", settWarnRed: "Red Alert (Over limit %)",
+                settCatTitle: "Manage Default Categories", settBackupTitle: "Backup & Restore", settBtnExport: "Export Backup File", settBtnImport: "Import Backup File",
+                settTheme: "Primary Color Theme", settDanger: "Danger Zone", settBtnClear: "Clear All System Data",
+                navIn: "Entry", navCal: "Timeline", navRep: "Report", navBud: "Budget", navSet: "Settings",
+                modTitle: "Edit Transaction", modCustom: "Custom Category Name", modCancel: "Cancel", modUpdate: "Update",
+                alertSaved: "Transaction saved successfully!", alertUpdated: "Changes updated successfully!", alertDeleted: "Transaction deleted successfully!",
+                alertDelConf: "Are you sure you want to delete this transaction?",
+                alertDelBud: "Delete budget limit for '{cat}'?", alertClearConf: "CRITICAL: Clear all system data? This action cannot be undone.",
+                alertCleaned: "System data cleared!", alertBudSucess: "Budget limit updated for: ", alertCustomCatReq: "Please enter a valid name!",
+                alertImportSuccess: "Data restored successfully!", alertImportFail: "Invalid backup file format!",
+                noData: "No Data Available", budgetSafe: "Safe", budgetWarning: "Approaching Limit ⚡", budgetDanger: "Over Budget Limit! ⚠️", budgetGeneral: "General Budget (Total)", budgetLimitLbl: "Limit: ", customOptText: "✨ Other (Custom text...)"
+            }
+        };
+
+        const defaultCategories = {
+            chi: ['Ăn uống', 'Mỹ phẩm', 'Tiền nhà', 'Tiền điện/nước', 'Di chuyển', 'Mua sắm', 'Khác'],
+            thu: ['Tiền lương', 'Tiền thưởng', 'Phụ cấp', 'Khác']
+        };
+
+        let txType = 'chi';
+        let transactions = JSON.parse(localStorage.getItem('smart_wallet_txs')) || [];
+        let budgets = JSON.parse(localStorage.getItem('smart_wallet_budgets')) || {};
+        let categories = JSON.parse(localStorage.getItem('smart_wallet_cats')) || defaultCategories;
+        
+        let activeTheme = localStorage.getItem('smart_wallet_theme') || 'teal';
+        let activeThemeHex = localStorage.getItem('smart_wallet_hex') || '#0d9488';
+        let currentLang = localStorage.getItem('smart_wallet_lang') || 'vi';
+        let currentCurrency = localStorage.getItem('smart_wallet_currency') || 'đ';
+        
+        // ĐỌC CẤU HÌNH TRẠNG THÁI LIGHT / DARK
+        let isDarkMode = localStorage.getItem('smart_wallet_darkmode') !== 'false';
+
+        let warnOrange = parseInt(localStorage.getItem('smart_wallet_warn_orange')) || 80;
+        let warnRed = parseInt(localStorage.getItem('smart_wallet_warn_red')) || 100;
+
+        let currentDate = new Date();
+        let reportChart = null;
+
+        let currentDisplayIncome = 0;
+        let currentDisplayExpense = 0;
+        let currentDisplayBalance = 0;
+
+        document.getElementById('f-date').valueAsDate = new Date();
+        document.getElementById('report-month-select').value = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
+        document.getElementById('budget-month-select').value = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
+        document.getElementById('sett-warn-orange').value = warnOrange;
+        document.getElementById('sett-warn-red').value = warnRed;
+
+        function toggleDarkMode() {
+            isDarkMode = !isDarkMode;
+            localStorage.setItem('smart_wallet_darkmode', isDarkMode);
+            applyLightDarkModeStyles();
+            if (reportChart) renderReport(); 
+        }
+
+        // ĐỔI STYLE LIGHT MODE NGHỆ THUẬT: NỀN HỒNG NHẠT, BÓNG MỜ XANH VÀNG
+        function applyLightDarkModeStyles() {
+            const body = document.getElementById('app-body');
+            const icon = document.getElementById('theme-toggle-icon');
+            const toast = document.getElementById('success-toast');
+            const aurora = document.getElementById('aurora-bg');
+            
+            const b1 = document.getElementById('blob-1');
+            const b2 = document.getElementById('blob-2');
+            const b3 = document.getElementById('blob-3');
+
+            if (isDarkMode) {
+                // CHẾ ĐỘ TỐI (DARK MODE NEON CHUYÊN NGHIỆP)
+                body.classList.add('dark');
+                body.className = "bg-slate-950 font-sans antialiased text-slate-100 pb-24 md:pb-6 min-h-screen relative overflow-x-hidden dark";
+                icon.className = "fa-solid fa-sun text-amber-300";
+                aurora.className = "fixed inset-0 z-0 overflow-hidden pointer-events-none opacity-40 transition-opacity duration-500";
+                toast.className = "fixed top-6 left-1/2 transform -translate-x-1/2 z-[110] bg-slate-900/95 backdrop-blur-md border border-slate-800 shadow-2xl px-6 py-4 rounded-2xl flex items-center gap-4 min-w-[280px] pointer-events-none opacity-0 translate-y-[-20px] transition-all duration-500 ease-out hidden text-slate-100";
+
+                b1.className = "absolute top-10 -left-16 w-80 h-80 bg-teal-500 rounded-full blur-[100px] animate-blob";
+                b2.className = "absolute top-1/3 -right-16 w-80 h-80 bg-purple-500 rounded-full blur-[100px] animate-blob animation-delay-2000";
+                b3.className = "absolute -bottom-10 left-1/3 w-80 h-80 bg-blue-500 rounded-full blur-[100px] animate-blob animation-delay-4000";
+
+                document.querySelectorAll('.glass-panel').forEach(el => {
+                    el.classList.remove('bg-white/70', 'border-white/40', 'shadow-lg', 'text-slate-800');
+                    el.classList.add('bg-slate-900/60', 'border-slate-800', 'shadow-xl', 'text-slate-100');
+                });
+                document.querySelectorAll('.input-field-toggle').forEach(el => {
+                    el.classList.remove('bg-white/90', 'border-rose-200/50', 'text-slate-800');
+                    el.classList.add('bg-slate-950', 'border-slate-800', 'text-slate-200');
+                });
+                document.querySelectorAll('.input-bg-toggle').forEach(el => {
+                    el.classList.remove('bg-rose-100/30', 'border-rose-200/30');
+                    el.classList.add('bg-slate-950/80', 'border-slate-800');
+                });
+                document.querySelectorAll('.nav-panel-toggle').forEach(el => {
+                    el.classList.remove('bg-white/80', 'border-rose-200/40');
+                    el.classList.add('bg-slate-900/80', 'border-slate-800/80');
+                });
+                document.querySelectorAll('.button-bg-toggle').forEach(el => {
+                    el.classList.remove('bg-rose-200/40', 'hover:bg-rose-200/60', 'text-slate-700');
+                    el.classList.add('bg-slate-800', 'hover:bg-slate-700', 'text-slate-300');
+                });
+                document.querySelectorAll('.border-toggle').forEach(el => {
+                    el.classList.remove('border-rose-200/40');
+                    el.classList.add('border-slate-800');
+                });
+                document.querySelectorAll('.table-divide-toggle').forEach(el => {
+                    el.classList.remove('divide-rose-100');
+                    el.classList.add('divide-slate-800/50');
+                });
+                document.querySelectorAll('.modal-panel-toggle').forEach(el => {
+                    el.classList.remove('bg-white/95', 'border-rose-200', 'text-slate-800');
+                    el.classList.add('bg-slate-900', 'border-slate-800', 'text-slate-100');
+                });
+                document.querySelectorAll('.text-toggle').forEach(el => {
+                    el.classList.remove('text-slate-600', 'hover:text-rose-600');
+                    el.classList.add('text-slate-300', 'hover:text-slate-100');
+                });
+                document.querySelectorAll('.border-white-toggle').forEach(el => {
+                    el.classList.remove('border-white');
+                    el.classList.add('border-slate-950');
+                });
+
+            } else {
+                // CHẾ ĐỘ SÁNG NGHỆ THUẬT (NỀN HỒNG NHẠT CHỦ ĐẠO - BÓNG MỜ XANH VÀNG)
+                body.classList.remove('dark');
+                body.className = "bg-gradient-to-br from-rose-50 via-rose-100/70 to-pink-50 font-sans antialiased text-slate-800 pb-24 md:pb-6 min-h-screen relative overflow-x-hidden";
+                icon.className = "fa-solid fa-moon text-slate-100";
+                aurora.className = "fixed inset-0 z-0 overflow-hidden pointer-events-none opacity-45 transition-opacity duration-500";
+                toast.className = "fixed top-6 left-1/2 transform -translate-x-1/2 z-[110] bg-white/95 backdrop-blur-md border border-rose-200 shadow-2xl px-6 py-4 rounded-2xl flex items-center gap-4 min-w-[280px] pointer-events-none opacity-0 translate-y-[-20px] transition-all duration-500 ease-out hidden text-slate-800";
+
+                // Thay đổi các đốm bóng chuyển động thành XANH MINT, VÀNG NẮNG và XANH BIỂN nhạt mờ ảo
+                b1.className = "absolute top-10 -left-16 w-80 h-80 bg-emerald-300 rounded-full blur-[100px] animate-blob";
+                b2.className = "absolute top-1/3 -right-16 w-80 h-80 bg-amber-300 rounded-full blur-[100px] animate-blob animation-delay-2000";
+                b3.className = "absolute -bottom-10 left-1/3 w-80 h-80 bg-cyan-300 rounded-full blur-[100px] animate-blob animation-delay-4000";
+
+                // Khung panel bằng kính mờ sữa phủ viền tinh tế
+                document.querySelectorAll('.glass-panel').forEach(el => {
+                    el.classList.remove('bg-slate-900/60', 'border-slate-800', 'shadow-xl', 'text-slate-100');
+                    el.classList.add('bg-white/70', 'border-white/40', 'shadow-lg', 'text-slate-800');
+                });
+                // Ô nhập liệu
+                document.querySelectorAll('.input-field-toggle').forEach(el => {
+                    el.classList.remove('bg-slate-950', 'border-slate-800', 'text-slate-200');
+                    el.classList.add('bg-white/90', 'border-rose-200/50', 'text-slate-800');
+                });
+                // Khung nền phụ
+                document.querySelectorAll('.input-bg-toggle').forEach(el => {
+                    el.classList.remove('bg-slate-950/80', 'border-slate-800');
+                    el.classList.add('bg-rose-100/30', 'border-rose-200/30');
+                });
+                // Thanh điều hướng
+                document.querySelectorAll('.nav-panel-toggle').forEach(el => {
+                    el.classList.remove('bg-slate-900/80', 'border-slate-800/80');
+                    el.classList.add('bg-white/80', 'border-rose-200/40');
+                });
+                // Nút bấm phụ nhỏ
+                document.querySelectorAll('.button-bg-toggle').forEach(el => {
+                    el.classList.remove('bg-slate-800', 'hover:bg-slate-700', 'text-slate-300');
+                    el.classList.add('bg-rose-200/40', 'hover:bg-rose-200/60', 'text-slate-700');
+                });
+                // Đường viền chia tách
+                document.querySelectorAll('.border-toggle').forEach(el => {
+                    el.classList.remove('border-slate-800');
+                    el.classList.add('border-rose-200/40');
+                });
+                document.querySelectorAll('.table-divide-toggle').forEach(el => {
+                    el.classList.remove('divide-slate-800/50');
+                    el.classList.add('divide-rose-100');
+                });
+                // Hộp thoại popup sửa
+                document.querySelectorAll('.modal-panel-toggle').forEach(el => {
+                    el.classList.remove('bg-slate-900', 'border-slate-800', 'text-slate-100');
+                    el.classList.add('bg-white/95', 'border-rose-200', 'text-slate-800');
+                });
+                document.querySelectorAll('.text-toggle').forEach(el => {
+                    el.classList.remove('text-slate-300', 'hover:text-slate-100');
+                    el.classList.add('text-slate-600', 'hover:text-rose-600');
+                });
+                document.querySelectorAll('.border-white-toggle').forEach(el => {
+                    el.classList.remove('border-slate-950');
+                    el.classList.add('border-white');
+                });
+            }
+
+            const balanceVal = currentDisplayIncome - currentDisplayExpense;
+            const balanceEl = document.getElementById('stat-balance');
+            if (balanceEl) {
+                if(balanceVal >= 0) {
+                    balanceEl.className = "text-sm md:text-xl font-black mt-0.5 tracking-tight text-emerald-600";
+                } else {
+                    balanceEl.className = "text-sm md:text-xl font-black mt-0.5 tracking-tight text-rose-500 animate-pulse";
+                }
+            }
+        }
+
+        function showSuccessToast(message) {
+            const toast = document.getElementById('success-toast');
+            const msgEl = document.getElementById('toast-msg');
+            const titleEl = document.getElementById('toast-title');
+            
+            titleEl.innerText = currentLang === 'vi' ? 'Thành công' : 'Success';
+            msgEl.innerText = message;
+            
+            toast.classList.remove('hidden');
+            setTimeout(() => {
+                toast.classList.remove('opacity-0', 'translate-y-[-20px]');
+                toast.classList.add('opacity-100', 'translate-y-0');
+            }, 50);
+
+            setTimeout(() => {
+                toast.classList.remove('opacity-100', 'translate-y-0');
+                toast.classList.add('opacity-0', 'translate-y-[-20px]');
+                setTimeout(() => {
+                    toast.classList.add('hidden');
+                    const svg = toast.querySelector('svg');
+                    const newSvg = svg.cloneNode(true);
+                    svg.parentNode.replaceChild(newSvg, svg);
+                }, 500);
+            }, 2500);
+        }
+
+        function animateNumber(elementId, start, end, duration) {
+            const element = document.getElementById(elementId);
+            if (!element) return;
+            const startTime = performance.now();
+            
+            function update(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const easeProgress = 1 - Math.pow(1 - progress, 3); 
+                const currentValue = Math.floor(start + easeProgress * (end - start));
+                
+                element.innerText = (end >= 0 || elementId !== 'stat-balance' ? '' : '-') + Math.abs(currentValue).toLocaleString() + currentCurrency;
+                
+                if (progress < 1) {
+                    requestAnimationFrame(update);
+                } else {
+                    element.innerText = (end >= 0 || elementId !== 'stat-balance' ? '' : '-') + Math.abs(end).toLocaleString() + currentCurrency;
+                }
+            }
+            requestAnimationFrame(update);
+        }
+
+        function applyLocalization() {
+            const d = langDict[currentLang];
+            
+            document.getElementById('txt-app-desc').innerText = d.appDesc;
+            document.getElementById('txt-header-subject').innerText = d.subject;
+            document.getElementById('lbl-total-income').innerText = d.inc;
+            document.getElementById('lbl-total-expense').innerText = d.exp;
+            document.getElementById('lbl-total-balance').innerText = d.bal;
+            document.getElementById('lbl-input-title').innerHTML = `<i class="fa-solid fa-circle-plus mr-2 header-icon-color"></i>${d.inputTitle}`;
+            document.getElementById('lbl-f-date').innerText = d.date;
+            document.getElementById('lbl-f-amount').innerText = d.amount;
+            document.getElementById('f-amount').placeholder = currentLang === 'vi' ? 'Nhập số tiền...' : 'Enter amount...';
+            document.getElementById('lbl-f-category').innerText = d.cat;
+            document.getElementById('lbl-f-custom').innerText = d.customCat;
+            document.getElementById('lbl-f-note').innerText = d.note;
+            document.getElementById('f-note').placeholder = currentLang === 'vi' ? 'Nhập lý do chi tiêu...' : 'Enter note details...';
+            document.getElementById('btn-submit-form').innerText = d.btnSave;
+            
+            document.getElementById('lbl-timeline-title').innerText = d.timeline;
+            document.getElementById('search-tx').placeholder = d.placeholderSearch;
+            
+            const row = document.getElementById('table-header-row');
+            if (row) row.innerHTML = `<th class="py-2">${d.thDate}</th><th class="py-2">${d.thType}</th><th class="py-2">${d.thDesc}</th><th class="py-2 text-right">${d.thAmount}</th><th class="py-2 text-center">${d.thAct}</th>`;
+            
+            document.getElementById('lbl-report-title').innerHTML = `<i class="fa-solid fa-chart-pie mr-2 header-icon-color"></i>${d.repTitle}`;
+            const rSelect = document.getElementById('report-type');
+            if (rSelect) rSelect.innerHTML = `<option value="chi">${d.optExp}</option><option value="thu">${d.optInc}</option>`;
+            
+            document.getElementById('lbl-budget-title').innerHTML = `<i class="fa-solid fa-bullseye mr-2 header-icon-color"></i>${d.budTitle}`;
+            document.getElementById('lbl-b-type').innerText = d.lblBType;
+            document.getElementById('lbl-b-limit').innerText = d.lblBLimit;
+            document.getElementById('lbl-b-custom-name').innerText = d.lblBCustom;
+            document.getElementById('budget-custom-name').placeholder = currentLang === 'vi' ? 'Ví dụ: Nuôi mèo, Đi chơi...' : 'e.g. Travel, Coffee...';
+            document.getElementById('lbl-b-btn').innerText = d.btnBUp;
+            
+            document.getElementById('lbl-sett-title').innerHTML = `<i class="fa-solid fa-sliders mr-2 header-icon-color"></i>${d.settTitle}`;
+            document.getElementById('lbl-sett-lang').innerText = d.settLang;
+            document.getElementById('lbl-sett-currency').innerText = d.settCur;
+            document.getElementById('lbl-sett-warn-title').innerText = d.settWarnTitle;
+            document.getElementById('lbl-sett-warn-orange').innerText = d.settWarnOrange;
+            document.getElementById('lbl-sett-warn-red').innerText = d.settWarnRed;
+            document.getElementById('lbl-sett-cat-title').innerText = d.settCatTitle;
+            document.getElementById('lbl-sett-backup-title').innerText = d.settBackupTitle;
+            document.getElementById('lbl-sett-btn-export').innerText = d.settBtnExport;
+            document.getElementById('lbl-sett-btn-import').innerText = d.settBtnImport;
+            document.getElementById('lbl-sett-theme').innerText = d.settTheme;
+            document.getElementById('lbl-sett-danger').innerText = d.settDanger;
+            document.getElementById('lbl-sett-btn-clear').innerText = d.settBtnClear;
+
+            document.getElementById('lbl-modal-title').innerHTML = `<i class="fa-solid fa-user-gear mr-1 modal-icon-color"></i>${d.modTitle}`;
+            document.getElementById('lbl-m-date').innerText = d.date;
+            document.getElementById('lbl-m-amount').innerText = d.amount;
+            document.getElementById('lbl-m-category').innerText = d.cat;
+            document.getElementById('lbl-m-custom').innerText = d.modCustom;
+            document.getElementById('lbl-m-note').innerText = d.note;
+            document.getElementById('lbl-m-btn-cancel').innerText = d.modCancel;
+            document.getElementById('btn-save-modal').innerText = d.modUpdate;
+
+            document.getElementById('nav-txt-input').innerText = d.navIn;
+            document.getElementById('nav-txt-calendar').innerText = d.navCal;
+            document.getElementById('nav-txt-report').innerText = d.navRep;
+            document.getElementById('nav-txt-budget').innerText = d.navBud;
+            document.getElementById('nav-txt-settings').innerText = d.navSet;
+
+            document.getElementById('sett-lang').value = currentLang;
+            document.getElementById('sett-currency').value = currentCurrency;
+
+            const calHeader = document.getElementById('calendar-days-header');
+            if (calHeader) calHeader.innerHTML = currentLang === 'vi' ? 
+                `<div>CN</div><div>T2</div><div>T3</div><div>T4</div><div>T5</div><div>T6</div><div>T7</div>` :
+                `<div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>`;
+        }
+
+        function changeLanguage(val) {
+            currentLang = val;
+            localStorage.setItem('smart_wallet_lang', val);
+            applyLocalization();
+            loadBudgetSelector();
+            setTxType(txType);
+            renderAll(false);
+        }
+
+        function changeCurrency(val) {
+            currentCurrency = val;
+            localStorage.setItem('smart_wallet_currency', val);
+            renderAll(false);
+            if (!document.getElementById('tab-calendar').classList.contains('hidden')) renderCalendar();
+            if (!document.getElementById('tab-budget').classList.contains('hidden')) renderBudgetTab();
+        }
+
+        function saveWarningThresholds() {
+            warnOrange = parseInt(document.getElementById('sett-warn-orange').value) || 80;
+            warnRed = parseInt(document.getElementById('sett-warn-red').value) || 100;
+            localStorage.setItem('smart_wallet_warn_orange', warnOrange);
+            localStorage.setItem('smart_wallet_warn_red', warnRed);
+        }
+
+        function switchTab(tabId) {
+            const tabs = ['tab-input', 'tab-calendar', 'tab-report', 'tab-budget', 'tab-settings'];
+            
+            tabs.forEach(id => {
+                const el = document.getElementById(id);
+                if (id === tabId) {
+                    el.classList.remove('hidden');
+                    setTimeout(() => {
+                        el.classList.remove('opacity-0', 'translate-y-4');
+                        el.classList.add('opacity-100', 'translate-y-0');
+                    }, 20);
+                } else {
+                    el.classList.add('hidden', 'opacity-0', 'translate-y-4');
+                    el.classList.remove('opacity-100', 'translate-y-0');
+                }
+            });
+
+            if (tabId === 'tab-calendar') renderCalendar();
+            if (tabId === 'tab-report') renderReport();
+            if (tabId === 'tab-budget') renderBudgetTab();
+            if (tabId === 'tab-settings') renderSettingsCategoryList();
+            renderAll(false);
+
+            document.querySelectorAll('.nav-btn').forEach(el => {
+                el.classList.remove(`text-${activeTheme}-400`, 'font-bold', 'scale-105', 'text-teal-400', 'text-blue-400', 'text-purple-400', 'text-rose-400', 'text-orange-400');
+                el.classList.add('text-slate-500', 'font-medium');
+            });
+
+            const navBtn = document.getElementById('nav-' + tabId);
+            if (navBtn) {
+                navBtn.classList.remove('text-slate-500', 'font-medium');
+                navBtn.classList.add(`text-${activeTheme}-400`, 'font-bold', 'scale-105');
+            }
+        }
+
+        function setTxType(type) {
+            txType = type;
+            const btnChi = document.getElementById('btn-type-chi');
+            const btnThu = document.getElementById('btn-type-thu');
+            if(type === 'chi') {
+                btnChi.className = "w-1/2 py-2 rounded-lg text-xs md:text-sm font-bold bg-slate-800 text-rose-400 shadow-md active:scale-95 cursor-pointer";
+                btnThu.className = "w-1/2 py-2 rounded-lg text-xs md:text-sm font-bold text-slate-500 hover:text-slate-300 transition-all active:scale-95 cursor-pointer";
+            } else {
+                btnThu.className = "w-1/2 py-2 rounded-lg text-xs md:text-sm font-bold bg-slate-800 text-emerald-400 shadow-md active:scale-95 cursor-pointer";
+                btnChi.className = "w-1/2 py-2 rounded-lg text-xs md:text-sm font-bold text-slate-500 hover:text-slate-300 transition-all active:scale-95 cursor-pointer";
+            }
+            loadFormCategories('f-category', txType);
+            applyLightDarkModeStyles(); 
+        }
+
+        function loadFormCategories(selectId, type, selectValue = '') {
+            const select = document.getElementById(selectId);
+            if (!select) return;
+            select.innerHTML = '';
+            categories[type].forEach(c => {
+                let opt = document.createElement('option');
+                opt.value = c; opt.innerText = c;
+                if(c === selectValue) opt.selected = true;
+                select.appendChild(opt);
+            });
+            checkCustomCategory(selectId, selectId === 'f-category' ? 'custom-cat-container' : 'edit-custom-cat-container');
+        }
+
+        function checkCustomCategory(selectId, containerId) {
+            const select = document.getElementById(selectId);
+            if (!select) return;
+            const selectVal = select.value;
+            const container = document.getElementById(containerId);
+            if(selectVal === 'Khác' || selectVal === 'Other') {
+                container.classList.remove('hidden');
+            } else {
+                container.classList.add('hidden');
+            }
+        }
+
+        function addTransaction(e) {
+            e.preventDefault();
+            const amount = parseInt(document.getElementById('f-amount').value);
+            const date = document.getElementById('f-date').value;
+            let category = document.getElementById('f-category').value;
+            const note = document.getElementById('f-note').value.trim();
+
+            if(category === 'Khác' || category === 'Other') {
+                const customCat = document.getElementById('f-custom-category').value.trim();
+                category = customCat || category;
+            }
+
+            const tx = { id: Date.now(), type: txType, amount, date, category, note: note || category };
+            transactions.unshift(tx);
+            localStorage.setItem('smart_wallet_txs', JSON.stringify(transactions));
+
+            document.getElementById('f-amount').value = '';
+            document.getElementById('f-note').value = '';
+            document.getElementById('f-custom-category').value = '';
+            document.getElementById('custom-cat-container').classList.add('hidden');
+            renderAll(true);
+            
+            showSuccessToast(langDict[currentLang].alertSaved);
+        }
+
+        function openEditModal(id) {
+            const tx = transactions.find(t => t.id === id);
+            if(!tx) return;
+
+            document.getElementById('edit-id').value = tx.id;
+            document.getElementById('edit-type').value = tx.type;
+            document.getElementById('edit-date').value = tx.date;
+            document.getElementById('edit-amount').value = tx.amount;
+            document.getElementById('edit-note').value = tx.note;
+
+            const isDefault = categories[tx.type].includes(tx.category);
+            if(isDefault) {
+                loadFormCategories('edit-category', tx.type, tx.category);
+            } else {
+                const triggerKeyword = categories[tx.type].includes('Khác') ? 'Khác' : 'Other';
+                loadFormCategories('edit-category', tx.type, triggerKeyword);
+                document.getElementById('edit-custom-category').value = tx.category;
+                document.getElementById('edit-custom-cat-container').classList.remove('hidden');
+            }
+
+            document.getElementById('edit-modal').classList.remove('hidden');
+            applyLightDarkModeStyles();
+        }
+
+        function closeEditModal() {
+            document.getElementById('edit-modal').classList.add('hidden');
+        }
+
+        function updateTransaction(e) {
+            e.preventDefault();
+            const id = parseInt(document.getElementById('edit-id').value);
+            const amount = parseInt(document.getElementById('edit-amount').value);
+            const date = document.getElementById('edit-date').value;
+            let category = document.getElementById('edit-category').value;
+            const fontNote = document.getElementById('edit-note').value.trim();
+
+            if(category === 'Khác' || category === 'Other') {
+                const customCat = document.getElementById('edit-custom-category').value.trim();
+                category = customCat || category;
+            }
+
+            transactions = transactions.map(t => {
+                if(t.id === id) return { ...t, amount, date, category, note: fontNote || category };
+                return t;
+            });
+
+            localStorage.setItem('smart_wallet_txs', JSON.stringify(transactions));
+            closeEditModal();
+            renderAll(true);
+            if(!document.getElementById('tab-calendar').classList.contains('hidden')) renderCalendar();
+            
+            showSuccessToast(langDict[currentLang].alertUpdated);
+        }
+
+        function deleteTx(id) {
+            if(confirm(langDict[currentLang].alertDelConf)) {
+                transactions = transactions.filter(t => t.id !== id);
+                localStorage.setItem('smart_wallet_txs', JSON.stringify(transactions));
+                renderAll(true);
+                if(!document.getElementById('tab-calendar').classList.contains('hidden')) renderCalendar();
+                
+                showSuccessToast(langDict[currentLang].alertDeleted);
+            }
+        }
+
+        function renderAll(triggerCountUp = true) {
+            let inc = 0, exp = 0;
+            const search = document.getElementById('search-tx').value.toLowerCase();
+            const tbody = document.getElementById('tx-table-body');
+            if (tbody) tbody.innerHTML = '';
+
+            transactions.forEach(t => {
+                if(t.type === 'thu') inc += t.amount;
+                if(t.type === 'chi') exp += t.amount;
+
+                if(tbody && (t.note.toLowerCase().includes(search) || t.category.toLowerCase().includes(search) || t.date.includes(search))) {
+                    let tr = document.createElement('tr');
+                    tr.className = isDarkMode ? "hover:bg-slate-900/40 transition-colors group" : "hover:bg-rose-100/30 transition-colors group";
+                    let d = t.date.split('-');
+                    
+                    const textDescColor = isDarkMode ? 'text-slate-300 group-hover:text-white' : 'text-slate-800 group-hover:text-rose-700';
+                    const amountExpColor = isDarkMode ? 'text-slate-300' : 'text-slate-700';
+
+                    tr.innerHTML = `
+                        <td class="py-3 text-slate-500 font-normal group-hover:text-slate-400 transition-colors">${d[2]}/${d[1]}</td>
+                        <td class="py-3"><span class="px-2 py-0.5 rounded-md text-[10px] font-bold ${t.type==='thu'?'bg-emerald-950/50 text-emerald-400':'bg-rose-950/50 text-rose-400'}">${t.type==='thu' ? 'THU':'CHI'}</span></td>
+                        <td class="py-3"><span class="block font-bold ${textDescColor} transition-colors">${t.category}</span><span class="block text-[11px] text-slate-500 font-normal">${t.note}</span></td>
+                        <td class="py-3 text-right font-black ${t.type==='thu'?'text-emerald-500':amountExpColor}">${t.type==='thu'?'+':'-'}${t.amount.toLocaleString()}${currentCurrency}</td>
+                        <td class="py-3 text-center flex justify-center gap-2 mt-1">
+                            <button onclick="openEditModal(${t.id})" class="text-slate-500 hover:text-teal-500 transition-all transform hover:scale-110 p-1 cursor-pointer"><i class="fa-regular fa-pen-to-square"></i></button>
+                            <button onclick="deleteTx(${t.id})" class="text-slate-600 hover:text-rose-500 transition-all transform hover:scale-110 p-1 cursor-pointer"><i class="fa-regular fa-trash-can"></i></button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                }
+            });
+
+            let balance = inc - exp;
+
+            if(triggerCountUp) {
+                animateNumber('stat-income', currentDisplayIncome, inc, 800);
+                animateNumber('stat-expense', currentDisplayExpense, exp, 800);
+                animateNumber('stat-balance', currentDisplayBalance, balance, 800);
+            } else {
+                document.getElementById('stat-income').innerText = inc.toLocaleString() + currentCurrency;
+                document.getElementById('stat-expense').innerText = exp.toLocaleString() + currentCurrency;
+                document.getElementById('stat-balance').innerText = (balance >= 0 ? '' : '-') + Math.abs(balance).toLocaleString() + currentCurrency;
+            }
+
+            currentDisplayIncome = inc;
+            currentDisplayExpense = exp;
+            currentDisplayBalance = balance;
+
+            const balanceEl = document.getElementById('stat-balance');
+            if(balance >= 0) {
+                balanceEl.className = isDarkMode ? "text-sm md:text-xl font-black mt-0.5 tracking-tight text-teal-400" : "text-sm md:text-xl font-black mt-0.5 tracking-tight text-emerald-600";
+            } else {
+                balanceEl.className = "text-sm md:text-xl font-black mt-0.5 tracking-tight text-rose-500 animate-pulse";
+            }
+        }
+
+        function changeMonth(dir) {
+            currentDate.setMonth(currentDate.getMonth() + dir);
+            renderCalendar();
+        }
+
+        function renderCalendar() {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            document.getElementById('calendar-title').innerText = `${currentLang==='vi'?'Tháng':'Month'} ${String(month + 1).padStart(2, '0')} / ${year}`;
+
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const grid = document.getElementById('calendar-grid');
+            if (!grid) return;
+            grid.innerHTML = '';
+
+            for (let i = 0; i < firstDay; i++) {
+                let blank = document.createElement('div');
+                blank.className = isDarkMode ? "bg-slate-900/10 rounded-lg p-2 h-14" : "bg-rose-100/20 rounded-lg p-2 h-14";
+                grid.appendChild(blank);
+            }
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                let dayStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+                let dayInc = 0, dayExp = 0;
+                
+                transactions.forEach(t => {
+                    if(t.date === dayStr) {
+                        if(t.type === 'thu') dayInc += t.amount;
+                        if(t.type === 'chi') dayExp += t.amount;
+                    }
+                });
+
+                let cell = document.createElement('div');
+                cell.className = isDarkMode ? 
+                    "bg-slate-950/40 border border-slate-900 rounded-lg p-1 h-14 flex flex-col justify-between items-center hover:bg-slate-800 hover:border-slate-700 transition-all transform hover:-translate-y-0.5 cursor-pointer" :
+                    "bg-white/80 border border-rose-100 rounded-lg p-1 h-14 flex flex-col justify-between items-center hover:bg-rose-50 hover:border-rose-300 hover:shadow-sm transition-all transform hover:-translate-y-0.5 cursor-pointer";
+                
+                cell.onclick = () => {
+                    document.getElementById('search-tx').value = dayStr;
+                    renderAll(false);
+                    document.getElementById('search-tx').scrollIntoView({ behavior: 'smooth' });
+                };
+
+                let html = `<span class="font-bold text-slate-400">${day}</span><div class="w-full text-[9px] scale-90 leading-tight text-center">`;
+                if(dayInc > 0) html += `<p class="text-emerald-500 font-bold">+${(dayInc/1000).toFixed(0)}k</p>`;
+                if(dayExp > 0) html += `<p class="text-rose-500 font-bold">-${(dayExp/1000).toFixed(0)}k</p>`;
+                html += `</div>`;
+                
+                cell.innerHTML = html;
+                grid.appendChild(cell);
+            }
+        }
+
+        function renderReport() {
+            const selectedMonth = document.getElementById('report-month-select').value;
+            const rType = document.getElementById('report-type').value;
+
+            if(!selectedMonth) return;
+
+            const chartDataObj = {};
+            transactions.forEach(t => {
+                if(t.type === rType && t.date.startsWith(selectedMonth)) {
+                    chartDataObj[t.category] = (chartDataObj[t.category] || 0) + t.amount;
+                }
+            });
+
+            const labels = Object.keys(chartDataObj);
+            const values = Object.values(chartDataObj);
+            const hasData = values.some(v => v > 0);
+
+            if(reportChart) reportChart.destroy();
+
+            const canvas = document.getElementById('reportChart');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            
+            const labelColor = isDarkMode ? '#94a3b8' : '#475569';
+
+            reportChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: hasData ? labels : [langDict[currentLang].noData],
+                    datasets: [{
+                        data: hasData ? values : [1],
+                        backgroundColor: hasData ? 
+                            ['#2dd4bf', '#3b82f6', '#a855f7', '#f43f5e', '#f97316', '#eab308', '#10b981', '#64748b'] : 
+                            (isDarkMode ? ['#1e293b'] : ['#e2e8f0']),
+                        borderColor: isDarkMode ? '#0f172a' : '#ffffff',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '65%',
+                    plugins: { 
+                        legend: { 
+                            position: 'bottom', 
+                            labels: { color: labelColor, boxWidth: 12, font: { size: 11, weight: '600' } } 
+                        } 
+                    },
+                    animation: {
+                        animateScale: true,
+                        animateRotate: true
+                    }
+                }
+            });
+        }
+
+        function loadBudgetSelector() {
+            const select = document.getElementById('budget-category-select');
+            if (!select) return;
+            select.innerHTML = `<option value="Tổng ngân sách">${langDict[currentLang].budgetGeneral}</option>`;
+            
+            categories.chi.forEach(c => {
+                if(c !== 'Khác' && c !== 'Other') {
+                    let opt = document.createElement('option');
+                    opt.value = c; opt.innerText = `${langDict[currentLang].budgetLimitLbl}${c}`;
+                    select.appendChild(opt);
+                }
+            });
+            let customOpt = document.createElement('option');
+            customOpt.value = 'CUSTOM_BUDGET';
+            customOpt.innerText = langDict[currentLang].customOptText;
+            select.appendChild(customOpt);
+
+            checkBudgetCustomCategory();
+        }
+
+        function checkBudgetCustomCategory() {
+            const select = document.getElementById('budget-category-select');
+            if (!select) return;
+            const selectVal = select.value;
+            const container = document.getElementById('budget-custom-cat-container');
+            if(selectVal === 'CUSTOM_BUDGET') {
+                container.classList.remove('hidden');
+            } else {
+                container.classList.add('hidden');
+            }
+        }
+
+        function saveBudget() {
+            let cat = document.getElementById('budget-category-select').value;
+            const amount = parseInt(document.getElementById('budget-amount-input').value);
+
+            if(cat === 'CUSTOM_BUDGET') {
+                const customName = document.getElementById('budget-custom-name').value.trim();
+                if(!customName) {
+                    alert(langDict[currentLang].alertCustomCatReq);
+                    return;
+                }
+                cat = customName;
+            }
+
+            if(amount > 0) {
+                budgets[cat] = amount;
+                localStorage.setItem('smart_wallet_budgets', JSON.stringify(budgets));
+                
+                document.getElementById('budget-amount-input').value = '';
+                document.getElementById('budget-custom-name').value = '';
+                document.getElementById('budget-category-select').value = 'Tổng ngân sách';
+                
+                checkBudgetCustomCategory();
+                renderBudgetTab();
+                
+                showSuccessToast(langDict[currentLang].alertBudSucess + cat);
+            }
+        }
+
+        function deleteBudget(cat) {
+            if(confirm(langDict[currentLang].alertDelBud.replace('{cat}', cat))) {
+                delete budgets[cat];
+                localStorage.setItem('smart_wallet_budgets', JSON.stringify(budgets));
+                renderBudgetTab();
+            }
+        }
+
+        function renderBudgetTab() {
+            const container = document.getElementById('budget-list-container');
+            if (!container) return;
+            container.innerHTML = '';
+
+            const filterMonthStr = document.getElementById('budget-month-select').value;
+            if(!filterMonthStr) return;
+
+            const expenseMap = { "Tổng ngân sách": 0 };
+            transactions.forEach(t => {
+                if(t.type === 'chi' && t.date.startsWith(filterMonthStr)) {
+                    expenseMap["Tổng ngân sách"] += t.amount;
+                    expenseMap[t.category] = (expenseMap[t.category] || 0) + t.amount;
+                }
+            });
+
+            const activeBudgets = Object.keys(budgets);
+            if(activeBudgets.length === 0) {
+                container.innerHTML = `<p class="text-xs text-center text-slate-500">${currentLang==='vi'?'Chưa có cấu hình hạn mức ngân sách nào.':'No budget thresholds configurated.'}</p>`;
+                return;
+            }
+
+            activeBudgets.forEach(cat => {
+                const limit = budgets[cat];
+                const spent = expenseMap[cat] || 0;
+                let pct = (spent / limit) * 100;
+                
+                let barColor = 'bg-gradient-to-r from-teal-500 to-emerald-400';
+                let warningText = langDict[currentLang].budgetSafe;
+                let textStyle = 'text-emerald-500 font-bold';
+                let remainingLabel = '';
+
+                if(spent > limit) {
+                    const overAmount = spent - limit;
+                    remainingLabel = currentLang === 'vi' ? ` (Thâm hụt: -${overAmount.toLocaleString()}${currentCurrency})` : ` (Deficit: -${overAmount.toLocaleString()}${currentCurrency})`;
+                } else {
+                    const leftAmount = limit - spent;
+                    remainingLabel = currentLang === 'vi' ? ` (Còn lại: ${leftAmount.toLocaleString()}${currentCurrency})` : ` (Left: ${leftAmount.toLocaleString()}${currentCurrency})`;
+                }
+                
+                if(pct >= warnRed) { 
+                    barColor = 'bg-gradient-to-r from-rose-600 to-red-500'; 
+                    warningText = langDict[currentLang].budgetDanger; 
+                    textStyle = 'text-rose-500 font-extrabold animate-pulse';
+                } else if(pct >= warnOrange) { 
+                    barColor = 'bg-gradient-to-r from-orange-500 to-amber-400'; 
+                    warningText = langDict[currentLang].budgetWarning; 
+                    textStyle = 'text-orange-500 font-bold';
+                }
+
+                let bCard = document.createElement('div');
+                bCard.className = isDarkMode ? 
+                    "bg-slate-950/40 p-3 rounded-xl border border-slate-900 space-y-2 hover:border-slate-800 transition-all duration-300 transform hover:-translate-y-0.5" :
+                    "bg-white p-3 rounded-xl border border-rose-200/50 space-y-2 hover:border-rose-300 hover:bg-rose-50/50 hover:shadow-sm transition-all duration-300 transform hover:-translate-y-0.5";
+                
+                const textTitleColor = isDarkMode ? 'text-slate-200' : 'text-slate-800';
+
+                bCard.innerHTML = `
+                    <div class="flex justify-between items-center text-xs font-bold">
+                        <span class="${textTitleColor}">${cat === 'Tổng ngân sách' ? langDict[currentLang].budgetGeneral : cat}</span>
+                        <div class="flex items-center gap-3">
+                            <span class="${pct >= warnRed ? 'text-rose-500' : 'text-slate-500'}">${spent.toLocaleString()} / ${limit.toLocaleString()}${currentCurrency}</span>
+                            <button onclick="deleteBudget('${cat}')" class="text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"><i class="fa-solid fa-circle-xmark"></i></button>
+                        </div>
+                    </div>
+                    <div class="w-full bg-slate-200 dark:bg-slate-900 h-2.5 rounded-full overflow-hidden border border-slate-300/40 dark:border-slate-800/60">
+                        <div class="${barColor} h-full transition-all duration-700 ease-out rounded-full" style="width: ${Math.min(pct, 100)}%"></div>
+                    </div>
+                    <div class="flex justify-between text-[10px] font-bold">
+                        <span class="text-slate-500">${pct.toFixed(0)}% ${currentLang==='vi'?'đã dùng':'used'}${remainingLabel}</span>
+                        <span class="${textStyle}">${warningText}</span>
+                    </div>
+                `;
+                container.appendChild(bCard);
+            });
+        }
+
+        function renderSettingsCategoryList() {
+            const type = document.getElementById('sett-cat-type').value;
+            const container = document.getElementById('sett-cat-list');
+            if (!container) return;
+            container.innerHTML = '';
+
+            categories[type].forEach(cat => {
+                let badge = document.createElement('span');
+                badge.className = isDarkMode ?
+                    "inline-flex items-center gap-1.5 bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-300 shadow-sm" :
+                    "inline-flex items-center gap-1.5 bg-white border border-rose-200/50 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-700 shadow-sm";
+                
+                const isSystemKeyword = ['Khác', 'Other'].includes(cat);
+                
+                badge.innerHTML = `
+                    <span>${cat}</span>
+                    ${!isSystemKeyword ? `<button onclick="deleteConfigCategory('${type}', '${cat}')" class="text-slate-400 hover:text-rose-500 font-bold ml-0.5 transition-colors cursor-pointer"><i class="fa-solid fa-xmark"></i></button>` : ''}
+                `;
+                container.appendChild(badge);
+            });
+        }
+
+        function addCustomConfigCategory() {
+            const type = document.getElementById('sett-cat-type').value;
+            const input = document.getElementById('sett-cat-new-name');
+            const name = input.value.trim();
+
+            if(!name) return;
+
+            if(!categories[type].includes(name)) {
+                const keywordIndex = categories[type].findIndex(c => ['Khác', 'Other'].includes(c));
+                if(keywordIndex !== -1) {
+                    categories[type].splice(keywordIndex, 0, name);
+                } else {
+                    categories[type].push(name);
+                }
+                
+                localStorage.setItem('smart_wallet_cats', JSON.stringify(categories));
+                input.value = '';
+                renderSettingsCategoryList();
+                loadBudgetSelector();
+                setTxType(txType);
+            }
+        }
+
+        function deleteConfigCategory(type, catName) {
+            categories[type] = categories[type].filter(c => c !== catName);
+            localStorage.setItem('smart_wallet_cats', JSON.stringify(categories));
+            renderSettingsCategoryList();
+            loadBudgetSelector();
+            setTxType(txType);
+        }
+
+        function exportDataToJSON() {
+            const backupData = {
+                transactions: transactions, budgets: budgets, categories: categories,
+                warnOrange: warnOrange, warnRed: warnRed, theme: activeTheme, themeHex: activeThemeHex,
+                currency: currentCurrency, lang: currentLang, darkmode: isDarkMode
+            };
+
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `smart_wallet_backup_${new Date().toISOString().slice(0,10)}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        function importDataFromJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const parsedData = JSON.parse(e.target.result);
+                    if (parsedData.transactions) {
+                        transactions = parsedData.transactions;
+                        budgets = parsedData.budgets || {};
+                        categories = parsedData.categories || defaultCategories;
+                        warnOrange = parsedData.warnOrange || 80;
+                        warnRed = parsedData.warnRed || 100;
+                        activeTheme = parsedData.theme || 'teal';
+                        activeThemeHex = parsedData.themeHex || '#0d9488';
+                        currentCurrency = parsedData.currency || 'đ';
+                        currentLang = parsedData.lang || 'vi';
+                        isDarkMode = parsedData.darkmode !== false;
+
+                        localStorage.setItem('smart_wallet_txs', JSON.stringify(transactions));
+                        localStorage.setItem('smart_wallet_budgets', JSON.stringify(budgets));
+                        localStorage.setItem('smart_wallet_cats', JSON.stringify(categories));
+                        localStorage.setItem('smart_wallet_warn_orange', warnOrange);
+                        localStorage.setItem('smart_wallet_warn_red', warnRed);
+                        localStorage.setItem('smart_wallet_theme', activeTheme);
+                        localStorage.setItem('smart_wallet_hex', activeThemeHex);
+                        localStorage.setItem('smart_wallet_currency', currentCurrency);
+                        localStorage.setItem('smart_wallet_lang', currentLang);
+                        localStorage.setItem('smart_wallet_darkmode', isDarkMode);
+
+                        showSuccessToast(langDict[currentLang].alertImportSuccess);
+                        setTimeout(() => window.location.reload(), 1500);
+                    } else {
+                        alert(langDict[currentLang].alertImportFail);
+                    }
+                } catch (err) {
+                    alert(langDict[currentLang].alertImportFail);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function changeTheme(themeName, hexColor) {
+            activeTheme = themeName;
+            activeThemeHex = hexColor;
+            localStorage.setItem('smart_wallet_theme', themeName);
+            localStorage.setItem('smart_wallet_hex', hexColor);
+            applyTheme();
+        }
+
+        function applyTheme() {
+            document.getElementById('app-header').style.backgroundColor = activeThemeHex + 'cc';
+            document.getElementById('btn-submit-form').style.backgroundColor = activeThemeHex;
+            document.getElementById('btn-save-modal').style.backgroundColor = activeThemeHex;
+            document.querySelectorAll('.header-icon-color').forEach(el => el.style.color = activeThemeHex);
+            document.querySelectorAll('.modal-icon-color').forEach(el => el.style.color = activeThemeHex);
+            document.querySelectorAll('.btn-theme-color').forEach(el => el.style.backgroundColor = activeThemeHex);
+
+            const activeTab = document.querySelector('.tab-content:not(.hidden)');
+            if (activeTab) {
+                const activeTabId = activeTab.id;
+                document.querySelectorAll('.nav-btn').forEach(el => {
+                    if(el.id === 'nav-' + activeTabId) {
+                        el.style.color = activeThemeHex;
+                    } else {
+                        el.style.color = '';
+                    }
+                });
+            }
+        }
+
+        function clearAllData() {
+            if(confirm(langDict[currentLang].alertClearConf)) {
+                localStorage.clear();
+                alert(langDict[currentLang].alertCleaned);
+                window.location.reload();
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            applyLocalization();
+            setTxType('chi');
+            loadBudgetSelector();
+            applyTheme();
+            applyLightDarkModeStyles(); 
+            
+            renderAll(true); 
+
+            setTimeout(() => {
+                const splash = document.getElementById('splash-screen');
+                if (splash) {
+                    splash.classList.add('opacity-0');
+                    setTimeout(() => splash.remove(), 700); 
+                }
+            }, 1600);
+        });
+    </script>
+</body>
+</html>
