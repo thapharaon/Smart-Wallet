@@ -123,7 +123,7 @@
         
         <header id="app-header" class="bg-teal-600/80 backdrop-blur-md text-white rounded-2xl p-4 md:p-6 shadow-xl border border-white/10 mb-6 flex justify-between items-center transition-all duration-500">
             <div>
-                <h1 class="text-xl md:text-2xl font-black tracking-wide"><i class="fa-solid fa-wallet mr-2"></i>Smart Wallet</h1>
+                <h1 onclick="goHome()" title="Về trang chủ" class="text-xl md:text-2xl font-black tracking-wide cursor-pointer select-none hover:opacity-80 active:scale-95 transition-all"><i class="fa-solid fa-wallet mr-2"></i>Smart Wallet</h1>
                 <p id="txt-app-desc" class="text-xs text-white/70 mt-0.5 font-medium">Quản lý tài chính cá nhân đa ngân sách</p>
             </div>
             <div class="flex items-center gap-3">
@@ -208,7 +208,7 @@
                         <h2 id="lbl-timeline-title" class="text-base md:text-lg font-bold">Dòng Thời Gian Giao Dịch</h2>
                         <div class="relative w-full sm:w-64">
                             <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-500 text-xs"></i>
-                            <input type="text" id="search-tx" oninput="renderAll()" class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-3 py-1.5 text-xs focus:outline-none focus:border-teal-400 input-field-toggle">
+                            <input type="text" id="search-tx" oninput="onSearchInput()" class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-3 py-1.5 text-xs focus:outline-none focus:border-teal-400 input-field-toggle">
                         </div>
                     </div>
                     <div class="overflow-x-auto">
@@ -224,6 +224,12 @@
                             </thead>
                             <tbody id="tx-table-body" class="divide-y divide-slate-800/50 font-medium table-divide-toggle"></tbody>
                         </table>
+                    </div>
+                    <div class="flex flex-col items-center gap-2 mt-4">
+                        <p id="txt-showing-count" class="text-[10px] text-slate-500 font-medium"></p>
+                        <button onclick="loadMoreTx()" id="btn-load-more" class="hidden bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold px-5 py-2 rounded-xl text-xs transition-all active:scale-95 button-bg-toggle text-toggle cursor-pointer">
+                            <i class="fa-solid fa-chevron-down mr-1.5"></i><span id="txt-load-more-label">Xem thêm</span>
+                        </button>
                     </div>
                 </div>
             </section>
@@ -258,7 +264,7 @@
                         </div>
                         <div>
                             <label id="lbl-b-limit" class="block text-[11px] font-bold text-slate-400 mb-1">Số Tiền Hạn Mức</label>
-                            <input type="number" id="budget-amount-input" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-2 py-1.5 text-xs font-bold focus:outline-none focus:border-teal-400 input-field-toggle">
+                            <input type="number" id="budget-amount-input" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-2 py-1.5 text-xs font-bold focus:outline-none input-field-toggle">
                         </div>
                     </div>
                     
@@ -438,7 +444,8 @@
                 alertDelBud: "Bạn có muốn xóa mục ngân sách của '{cat}'?", alertClearConf: "Xác nhận xóa toàn bộ dữ liệu? Thao tác này không thể hoàn tác.",
                 alertCleaned: "Hệ thống đã được làm sạch!", alertBudSucess: "Đã thiết lập ngân sách cho mục: ", alertCustomCatReq: "Vui lòng nhập tên danh mục!",
                 alertImportSuccess: "Khôi phục dữ liệu thành công!", alertImportFail: "File dữ liệu không hợp lệ!",
-                noData: "Không có dữ liệu", budgetSafe: "An toàn", budgetWarning: "Sắp chạm ngưỡng ⚡", budgetDanger: "Thâm hụt! ⚠️", budgetGeneral: "Ngân Sách Chung (Tổng)", budgetLimitLbl: "Hạn mức: ", customOptText: "✨ Khác (Tự nhập...)"
+                noData: "Không có dữ liệu", budgetSafe: "An toàn", budgetWarning: "Sắp chạm ngưỡng ⚡", budgetDanger: "Thâm hụt! ⚠️", budgetGeneral: "Ngân Sách Chung (Tổng)", budgetLimitLbl: "Hạn mức: ", customOptText: "✨ Khác (Tự nhập...)",
+                loadMore: "Xem thêm", showingCount: "Hiển thị {shown}/{total} giao dịch"
             },
             en: {
                 appDesc: "Multi-budget personal financial tracker",
@@ -460,7 +467,8 @@
                 alertDelBud: "Delete budget limit for '{cat}'?", alertClearConf: "CRITICAL: Clear all system data? This action cannot be undone.",
                 alertCleaned: "System data cleared!", alertBudSucess: "Budget limit updated for: ", alertCustomCatReq: "Please enter a valid name!",
                 alertImportSuccess: "Data restored successfully!", alertImportFail: "Invalid backup file format!",
-                noData: "No Data Available", budgetSafe: "Safe", budgetWarning: "Approaching Limit ⚡", budgetDanger: "Over Budget Limit! ⚠️", budgetGeneral: "General Budget (Total)", budgetLimitLbl: "Limit: ", customOptText: "✨ Other (Custom text...)"
+                noData: "No Data Available", budgetSafe: "Safe", budgetWarning: "Approaching Limit ⚡", budgetDanger: "Over Budget Limit! ⚠️", budgetGeneral: "General Budget (Total)", budgetLimitLbl: "Limit: ", customOptText: "✨ Other (Custom text...)",
+                loadMore: "Show more", showingCount: "Showing {shown}/{total} transactions"
             }
         };
 
@@ -487,6 +495,10 @@
 
         let currentDate = new Date();
         let reportChart = null;
+
+        // Phân trang cho danh sách giao dịch trong tab Lịch & GD
+        const TX_PAGE_SIZE = 8;
+        let txDisplayLimit = TX_PAGE_SIZE;
 
         let currentDisplayIncome = 0;
         let currentDisplayExpense = 0;
@@ -710,6 +722,7 @@
             
             document.getElementById('lbl-timeline-title').innerText = d.timeline;
             document.getElementById('search-tx').placeholder = d.placeholderSearch;
+            document.getElementById('txt-load-more-label').innerText = d.loadMore;
             
             const row = document.getElementById('table-header-row');
             if (row) row.innerHTML = `<th class="py-2">${d.thDate}</th><th class="py-2">${d.thType}</th><th class="py-2">${d.thDesc}</th><th class="py-2 text-right">${d.thAmount}</th><th class="py-2 text-center">${d.thAct}</th>`;
@@ -804,7 +817,7 @@
                 }
             });
 
-            if (tabId === 'tab-calendar') renderCalendar();
+            if (tabId === 'tab-calendar') { txDisplayLimit = TX_PAGE_SIZE; renderCalendar(); }
             if (tabId === 'tab-report') renderReport();
             if (tabId === 'tab-budget') renderBudgetTab();
             if (tabId === 'tab-settings') renderSettingsCategoryList();
@@ -958,11 +971,20 @@
             const tbody = document.getElementById('tx-table-body');
             if (tbody) tbody.innerHTML = '';
 
+            const filteredTx = [];
+
             transactions.forEach(t => {
                 if(t.type === 'thu') inc += t.amount;
                 if(t.type === 'chi') exp += t.amount;
 
-                if(tbody && (t.note.toLowerCase().includes(search) || t.category.toLowerCase().includes(search) || t.date.includes(search))) {
+                if(t.note.toLowerCase().includes(search) || t.category.toLowerCase().includes(search) || t.date.includes(search)) {
+                    filteredTx.push(t);
+                }
+            });
+
+            if(tbody) {
+                const txToShow = filteredTx.slice(0, txDisplayLimit);
+                txToShow.forEach(t => {
                     let tr = document.createElement('tr');
                     tr.className = isDarkMode ? "hover:bg-slate-900/40 transition-colors group" : "hover:bg-rose-100/30 transition-colors group";
                     let d = t.date.split('-');
@@ -981,8 +1003,10 @@
                         </td>
                     `;
                     tbody.appendChild(tr);
-                }
-            });
+                });
+
+                renderLoadMoreState(filteredTx.length);
+            }
 
             let balance = inc - exp;
 
@@ -1006,6 +1030,43 @@
             } else {
                 balanceEl.className = "text-sm md:text-xl font-black mt-0.5 tracking-tight text-rose-500 animate-pulse";
             }
+        }
+
+        function renderLoadMoreState(totalCount) {
+            const btn = document.getElementById('btn-load-more');
+            const countTxt = document.getElementById('txt-showing-count');
+            if(!btn || !countTxt) return;
+
+            const shown = Math.min(txDisplayLimit, totalCount);
+
+            if(totalCount === 0) {
+                countTxt.innerText = '';
+            } else {
+                countTxt.innerText = langDict[currentLang].showingCount
+                    .replace('{shown}', shown)
+                    .replace('{total}', totalCount);
+            }
+
+            if(totalCount > txDisplayLimit) {
+                btn.classList.remove('hidden');
+            } else {
+                btn.classList.add('hidden');
+            }
+        }
+
+        function loadMoreTx() {
+            txDisplayLimit += TX_PAGE_SIZE;
+            renderAll(false);
+        }
+
+        function onSearchInput() {
+            txDisplayLimit = TX_PAGE_SIZE;
+            renderAll(false);
+        }
+
+        function goHome() {
+            switchTab('tab-input');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         function changeMonth(dir) {
@@ -1048,6 +1109,7 @@
                 
                 cell.onclick = () => {
                     document.getElementById('search-tx').value = dayStr;
+                    txDisplayLimit = TX_PAGE_SIZE;
                     renderAll(false);
                     document.getElementById('search-tx').scrollIntoView({ behavior: 'smooth' });
                 };
