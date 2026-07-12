@@ -72,3 +72,13 @@ input[type="month"]::-webkit-calendar-picker-indicator {
 .dark input[type="month"]::-webkit-calendar-picker-indicator {
     filter: invert(1);
 }
+
+@media (min-width: 768px) {
+    .nav-btn {
+        border-radius: 0.75rem;
+        transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+    }
+    .nav-btn.active-nav {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+}

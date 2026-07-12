@@ -78,14 +78,16 @@ export function switchTab(tabId) {
     renderAll(false);
 
     document.querySelectorAll('.nav-btn').forEach(el => {
-        el.classList.remove(`text-${state.activeTheme}-400`, 'font-bold', 'scale-105', 'text-teal-400', 'text-blue-400', 'text-purple-400', 'text-rose-400', 'text-orange-400');
+        el.classList.remove(`text-${state.activeTheme}-400`, 'font-bold', 'scale-105', 'active-nav', 'text-teal-400', 'text-blue-400', 'text-purple-400', 'text-rose-400', 'text-orange-400');
         el.classList.add('text-slate-500', 'font-medium');
+        el.style.color = '';
     });
 
     const navBtn = document.getElementById('nav-' + tabId);
     if (navBtn) {
         navBtn.classList.remove('text-slate-500', 'font-medium');
-        navBtn.classList.add(`text-${state.activeTheme}-400`, 'font-bold', 'scale-105');
+        navBtn.classList.add(`text-${state.activeTheme}-400`, 'font-bold', 'scale-105', 'active-nav');
+        navBtn.style.color = state.activeThemeHex;
     }
 }
 

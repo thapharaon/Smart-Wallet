@@ -138,8 +138,10 @@ export function applyTheme() {
         document.querySelectorAll('.nav-btn').forEach(el => {
             if (el.id === 'nav-' + activeTabId) {
                 el.style.color = state.activeThemeHex;
+                el.classList.add('active-nav');
             } else {
                 el.style.color = '';
+                el.classList.remove('active-nav');
             }
         });
     }

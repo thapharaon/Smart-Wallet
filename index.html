@@ -38,7 +38,28 @@
         </div>
     </div>
 
-    <div class="max-w-6xl mx-auto p-3 md:p-6 relative z-10">
+    <nav id="app-sidebar" class="fixed bottom-0 left-0 right-0 z-50 nav-panel-toggle bg-slate-900/80 backdrop-blur-lg border-t border-slate-800/80 shadow-2xl md:fixed md:bottom-auto md:left-0 md:top-0 md:right-auto md:h-screen md:w-[72px] md:border-t-0 md:border-r md:border-slate-800/80 md:rounded-none md:rounded-tr-2xl md:rounded-br-2xl md:shadow-2xl md:flex md:flex-col md:items-center md:py-6 md:gap-1 md:z-50">
+        <div class="flex justify-around items-center w-full md:flex-col md:gap-1 md:h-full">
+            <button onclick="switchTab('tab-input')" id="nav-tab-input" class="nav-btn flex flex-col items-center gap-1 p-2 text-teal-400 font-bold text-[10px] md:text-xs transition-all scale-105 cursor-pointer md:w-full md:justify-center md:py-3 md:rounded-xl md:mx-1">
+                <i class="fa-solid fa-pen-to-square text-base md:text-lg"></i><span id="nav-txt-input" class="md:hidden">Nhập Liệu</span>
+            </button>
+            <button onclick="switchTab('tab-calendar')" id="nav-tab-calendar" class="nav-btn flex flex-col items-center gap-1 p-2 text-slate-500 font-medium text-[10px] md:text-xs transition-all cursor-pointer md:w-full md:justify-center md:py-3 md:rounded-xl md:mx-1">
+                <i class="fa-solid fa-calendar-days text-base md:text-lg"></i><span id="nav-txt-calendar" class="md:hidden">Lịch & GD</span>
+            </button>
+            <button onclick="switchTab('tab-report')" id="nav-tab-report" class="nav-btn flex flex-col items-center gap-1 p-2 text-slate-500 font-medium text-[10px] md:text-xs transition-all cursor-pointer md:w-full md:justify-center md:py-3 md:rounded-xl md:mx-1">
+                <i class="fa-solid fa-chart-pie text-base md:text-lg"></i><span id="nav-txt-report" class="md:hidden">Báo Cáo</span>
+            </button>
+            <button onclick="switchTab('tab-budget')" id="nav-tab-budget" class="nav-btn flex flex-col items-center gap-1 p-2 text-slate-500 font-medium text-[10px] md:text-xs transition-all cursor-pointer md:w-full md:justify-center md:py-3 md:rounded-xl md:mx-1">
+                <i class="fa-solid fa-bullseye text-base md:text-lg"></i><span id="nav-txt-budget" class="md:hidden">Ngân Sách</span>
+            </button>
+            <button onclick="switchTab('tab-settings')" id="nav-tab-settings" class="nav-btn flex flex-col items-center gap-1 p-2 text-slate-500 font-medium text-[10px] md:text-xs transition-all cursor-pointer md:w-full md:justify-center md:py-3 md:rounded-xl md:mx-1">
+                <i class="fa-solid fa-sliders text-base md:text-lg"></i><span id="nav-txt-settings" class="md:hidden">Cài Đặt</span>
+            </button>
+        </div>
+    </nav>
+
+    <div class="md:ml-[72px] min-h-screen">
+    <div class="max-w-7xl mx-auto p-3 md:p-6 relative z-10">
 
         <header id="app-header" class="bg-teal-600/80 backdrop-blur-md text-white rounded-2xl p-4 md:p-6 shadow-xl border border-white/10 mb-6 flex justify-between items-center transition-all duration-500">
             <div>
@@ -282,26 +303,7 @@
             </section>
 
         </main>
-
-        <nav class="fixed bottom-3 left-3 right-3 bg-slate-900/80 backdrop-blur-lg border border-slate-800/80 shadow-2xl rounded-2xl px-2 py-1.5 md:relative md:bottom-0 md:left-0 md:right-0 md:rounded-2xl md:mb-6 z-50 nav-panel-toggle">
-            <div class="flex justify-around items-center max-w-md mx-auto md:max-w-none">
-                <button onclick="switchTab('tab-input')" id="nav-tab-input" class="flex flex-col items-center gap-1 p-2 text-teal-400 font-bold text-[10px] md:text-xs transition-all nav-btn scale-105 cursor-pointer">
-                    <i class="fa-solid fa-pen-to-square text-base md:text-lg"></i><span id="nav-txt-input">Nhập Liệu</span>
-                </button>
-                <button onclick="switchTab('tab-calendar')" id="nav-tab-calendar" class="flex flex-col items-center gap-1 p-2 text-slate-500 font-medium text-[10px] md:text-xs transition-all nav-btn cursor-pointer">
-                    <i class="fa-solid fa-calendar-days text-base md:text-lg"></i><span id="nav-txt-calendar">Lịch & GD</span>
-                </button>
-                <button onclick="switchTab('tab-report')" id="nav-tab-report" class="flex flex-col items-center gap-1 p-2 text-slate-500 font-medium text-[10px] md:text-xs transition-all nav-btn cursor-pointer">
-                    <i class="fa-solid fa-chart-pie text-base md:text-lg"></i><span id="nav-txt-report">Báo Cáo</span>
-                </button>
-                <button onclick="switchTab('tab-budget')" id="nav-tab-budget" class="flex flex-col items-center gap-1 p-2 text-slate-500 font-medium text-[10px] md:text-xs transition-all nav-btn cursor-pointer">
-                    <i class="fa-solid fa-bullseye text-base md:text-lg"></i><span id="nav-txt-budget">Ngân Sách</span>
-                </button>
-                <button onclick="switchTab('tab-settings')" id="nav-tab-settings" class="flex flex-col items-center gap-1 p-2 text-slate-500 font-medium text-[10px] md:text-xs transition-all nav-btn cursor-pointer">
-                    <i class="fa-solid fa-sliders text-base md:text-lg"></i><span id="nav-txt-settings">Cài Đặt</span>
-                </button>
-            </div>
-        </nav>
+    </div>
     </div>
 
     <div id="edit-modal" class="fixed inset-0 bg-black/70 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden transition-all">
