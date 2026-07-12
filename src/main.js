@@ -1,11 +1,11 @@
 import './style.css';
 import { state, loadState } from './state.js';
 import { applyLocalization } from './lang.js';
-import { switchTab } from './ui.js';
+import { switchTab, toggleDarkMode, applyLightDarkModeStyles, goHome, showSuccessToast } from './ui.js';
 import {
     setTxType, addTransaction, checkCustomCategory,
     openEditModal, closeEditModal, updateTransaction,
-    deleteTx, renderAll
+    deleteTx, renderAll, loadMoreTx, onSearchInput
 } from './transactions.js';
 import { changeMonth, renderCalendar } from './calendar.js';
 import { renderReport } from './report.js';
@@ -19,7 +19,9 @@ import {
     changeTheme, applyTheme, clearAllData, saveWarningThresholds
 } from './settings.js';
 
+window.goHome = goHome;
 window.switchTab = switchTab;
+window.toggleDarkMode = toggleDarkMode;
 window.setTxType = setTxType;
 window.addTransaction = addTransaction;
 window.checkCustomCategory = checkCustomCategory;
@@ -28,12 +30,15 @@ window.closeEditModal = closeEditModal;
 window.updateTransaction = updateTransaction;
 window.deleteTx = deleteTx;
 window.renderAll = renderAll;
+window.loadMoreTx = loadMoreTx;
+window.onSearchInput = onSearchInput;
 window.changeMonth = changeMonth;
 window.renderReport = renderReport;
 window.loadBudgetSelector = loadBudgetSelector;
 window.checkBudgetCustomCategory = checkBudgetCustomCategory;
 window.saveBudget = saveBudget;
 window.deleteBudget = deleteBudget;
+window.renderBudgetTab = renderBudgetTab;
 window.renderSettingsCategoryList = renderSettingsCategoryList;
 window.addCustomConfigCategory = addCustomConfigCategory;
 window.deleteConfigCategory = deleteConfigCategory;
@@ -56,9 +61,8 @@ window.changeCurrency = function (val) {
     state.currentCurrency = val;
     localStorage.setItem('smart_wallet_currency', val);
     renderAll(false);
-    const activeTab = document.querySelector('.tab-content.active');
-    if (activeTab && activeTab.id === 'tab-calendar') renderCalendar();
-    if (activeTab && activeTab.id === 'tab-budget') renderBudgetTab();
+    if (!document.getElementById('tab-calendar').classList.contains('hidden')) renderCalendar();
+    if (!document.getElementById('tab-budget').classList.contains('hidden')) renderBudgetTab();
 };
 
 loadState();
@@ -66,6 +70,8 @@ loadState();
 document.getElementById('f-date').valueAsDate = new Date();
 const now = new Date();
 document.getElementById('report-month-select').value =
+    `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+document.getElementById('budget-month-select').value =
     `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 document.getElementById('sett-warn-orange').value = state.warnOrange;
 document.getElementById('sett-warn-red').value = state.warnRed;
@@ -75,14 +81,15 @@ window.addEventListener('DOMContentLoaded', () => {
     setTxType('chi');
     loadBudgetSelector();
     applyTheme();
+    applyLightDarkModeStyles();
 
     renderAll(true);
 
-    document.getElementById('tab-input').classList.add('show');
-
     setTimeout(() => {
         const splash = document.getElementById('splash-screen');
-        splash.classList.add('opacity-0');
-        setTimeout(() => splash.remove(), 700);
+        if (splash) {
+            splash.classList.add('opacity-0');
+            setTimeout(() => splash.remove(), 700);
+        }
     }, 1600);
 });

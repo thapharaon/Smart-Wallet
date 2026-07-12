@@ -2,20 +2,25 @@ import { state, LS_KEYS } from './state.js';
 import { langDict } from './lang.js';
 import { loadFormCategories, setTxType } from './transactions.js';
 import { loadBudgetSelector } from './budget.js';
+import { showSuccessToast, applyLightDarkModeStyles } from './ui.js';
 
 export function renderSettingsCategoryList() {
     const type = document.getElementById('sett-cat-type').value;
     const container = document.getElementById('sett-cat-list');
+    if (!container) return;
     container.innerHTML = '';
 
     (state.categories[type] || []).forEach(cat => {
         let badge = document.createElement('span');
-        badge.className = "inline-flex items-center gap-1.5 bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-300 shadow-sm";
+        badge.className = state.isDarkMode ?
+            "inline-flex items-center gap-1.5 bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-300 shadow-sm" :
+            "inline-flex items-center gap-1.5 bg-white border border-rose-200/50 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-700 shadow-sm";
+
         const isSystemKeyword = ['Khác', 'Other'].includes(cat);
 
         badge.innerHTML = `
             <span>${cat}</span>
-            ${!isSystemKeyword ? `<button onclick="deleteConfigCategory('${type}', '${cat}')" class="text-slate-500 hover:text-rose-400 font-bold ml-0.5 transition-colors cursor-pointer"><i class="fa-solid fa-xmark"></i></button>` : ''}
+            ${!isSystemKeyword ? `<button onclick="deleteConfigCategory('${type}', '${cat}')" class="text-slate-400 hover:text-rose-500 font-bold ml-0.5 transition-colors cursor-pointer"><i class="fa-solid fa-xmark"></i></button>` : ''}
         `;
         container.appendChild(badge);
     });
@@ -56,7 +61,7 @@ export function exportDataToJSON() {
     const backupData = {
         transactions: state.transactions, budgets: state.budgets, categories: state.categories,
         warnOrange: state.warnOrange, warnRed: state.warnRed, theme: state.activeTheme, themeHex: state.activeThemeHex,
-        currency: state.currentCurrency, lang: state.currentLang
+        currency: state.currentCurrency, lang: state.currentLang, darkmode: state.isDarkMode
     };
 
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData));
@@ -86,6 +91,7 @@ export function importDataFromJSON(event) {
                 state.activeThemeHex = parsedData.themeHex || '#0d9488';
                 state.currentCurrency = parsedData.currency || 'đ';
                 state.currentLang = parsedData.lang || 'vi';
+                state.isDarkMode = parsedData.darkmode !== false;
 
                 localStorage.setItem(LS_KEYS.TXS, JSON.stringify(state.transactions));
                 localStorage.setItem(LS_KEYS.BUDGETS, JSON.stringify(state.budgets));
@@ -96,9 +102,10 @@ export function importDataFromJSON(event) {
                 localStorage.setItem(LS_KEYS.HEX, state.activeThemeHex);
                 localStorage.setItem(LS_KEYS.CURRENCY, state.currentCurrency);
                 localStorage.setItem(LS_KEYS.LANG, state.currentLang);
+                localStorage.setItem(LS_KEYS.DARKMODE, state.isDarkMode);
 
-                alert(langDict[state.currentLang].alertImportSuccess);
-                window.location.reload();
+                showSuccessToast(langDict[state.currentLang].alertImportSuccess);
+                setTimeout(() => window.location.reload(), 1500);
             } else {
                 alert(langDict[state.currentLang].alertImportFail);
             }
@@ -125,15 +132,17 @@ export function applyTheme() {
     document.querySelectorAll('.modal-icon-color').forEach(el => el.style.color = state.activeThemeHex);
     document.querySelectorAll('.btn-theme-color').forEach(el => el.style.backgroundColor = state.activeThemeHex);
 
-    const activeTabId = document.querySelector('.tab-content.active').id;
-
-    document.querySelectorAll('.nav-btn').forEach(el => {
-        if (el.id === 'nav-' + activeTabId) {
-            el.style.color = state.activeThemeHex;
-        } else {
-            el.style.color = '';
-        }
-    });
+    const activeTab = document.querySelector('.tab-content:not(.hidden)');
+    if (activeTab) {
+        const activeTabId = activeTab.id;
+        document.querySelectorAll('.nav-btn').forEach(el => {
+            if (el.id === 'nav-' + activeTabId) {
+                el.style.color = state.activeThemeHex;
+            } else {
+                el.style.color = '';
+            }
+        });
+    }
 }
 
 export function clearAllData() {

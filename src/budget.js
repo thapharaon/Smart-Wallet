@@ -1,8 +1,10 @@
 import { state, LS_KEYS } from './state.js';
 import { langDict } from './lang.js';
+import { showSuccessToast } from './ui.js';
 
 export function loadBudgetSelector() {
     const select = document.getElementById('budget-category-select');
+    if (!select) return;
     select.innerHTML = `<option value="Tổng ngân sách">${langDict[state.currentLang].budgetGeneral}</option>`;
 
     (state.categories.chi || []).forEach(c => {
@@ -22,7 +24,9 @@ export function loadBudgetSelector() {
 }
 
 export function checkBudgetCustomCategory() {
-    const selectVal = document.getElementById('budget-category-select').value;
+    const select = document.getElementById('budget-category-select');
+    if (!select) return;
+    const selectVal = select.value;
     const container = document.getElementById('budget-custom-cat-container');
     if (selectVal === 'CUSTOM_BUDGET') {
         container.classList.remove('hidden');
@@ -54,7 +58,8 @@ export function saveBudget() {
 
         checkBudgetCustomCategory();
         renderBudgetTab();
-        alert(langDict[state.currentLang].alertBudSucess + cat);
+
+        showSuccessToast(langDict[state.currentLang].alertBudSucess + cat);
     }
 }
 
@@ -68,14 +73,15 @@ export function deleteBudget(cat) {
 
 export function renderBudgetTab() {
     const container = document.getElementById('budget-list-container');
+    if (!container) return;
     container.innerHTML = '';
 
-    const now = new Date();
-    const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const filterMonthStr = document.getElementById('budget-month-select').value;
+    if (!filterMonthStr) return;
 
     const expenseMap = { "Tổng ngân sách": 0 };
     state.transactions.forEach(t => {
-        if (t.type === 'chi' && t.date.startsWith(currentMonthStr)) {
+        if (t.type === 'chi' && t.date.startsWith(filterMonthStr)) {
             expenseMap["Tổng ngân sách"] += t.amount;
             expenseMap[t.category] = (expenseMap[t.category] || 0) + t.amount;
         }
@@ -94,33 +100,47 @@ export function renderBudgetTab() {
 
         let barColor = 'bg-gradient-to-r from-teal-500 to-emerald-400';
         let warningText = langDict[state.currentLang].budgetSafe;
-        let textStyle = 'text-emerald-400';
+        let textStyle = 'text-emerald-500 font-bold';
+        let remainingLabel = '';
+
+        if (spent > limit) {
+            const overAmount = spent - limit;
+            remainingLabel = state.currentLang === 'vi' ? ` (Thâm hụt: -${overAmount.toLocaleString()}${state.currentCurrency})` : ` (Deficit: -${overAmount.toLocaleString()}${state.currentCurrency})`;
+        } else {
+            const leftAmount = limit - spent;
+            remainingLabel = state.currentLang === 'vi' ? ` (Còn lại: ${leftAmount.toLocaleString()}${state.currentCurrency})` : ` (Left: ${leftAmount.toLocaleString()}${state.currentCurrency})`;
+        }
 
         if (pct >= state.warnRed) {
             barColor = 'bg-gradient-to-r from-rose-600 to-red-500';
             warningText = langDict[state.currentLang].budgetDanger;
-            textStyle = 'text-rose-400 font-extrabold animate-pulse';
+            textStyle = 'text-rose-500 font-extrabold animate-pulse';
         } else if (pct >= state.warnOrange) {
             barColor = 'bg-gradient-to-r from-orange-500 to-amber-400';
             warningText = langDict[state.currentLang].budgetWarning;
-            textStyle = 'text-orange-400';
+            textStyle = 'text-orange-500 font-bold';
         }
 
         let bCard = document.createElement('div');
-        bCard.className = "bg-slate-950/40 p-3 rounded-xl border border-slate-900 space-y-2 hover:border-slate-800 transition-all duration-300 transform hover:-translate-y-0.5";
+        bCard.className = state.isDarkMode ?
+            "bg-slate-950/40 p-3 rounded-xl border border-slate-900 space-y-2 hover:border-slate-800 transition-all duration-300 transform hover:-translate-y-0.5" :
+            "bg-white p-3 rounded-xl border border-rose-200/50 space-y-2 hover:border-rose-300 hover:bg-rose-50/50 hover:shadow-sm transition-all duration-300 transform hover:-translate-y-0.5";
+
+        const textTitleColor = state.isDarkMode ? 'text-slate-200' : 'text-slate-800';
+
         bCard.innerHTML = `
             <div class="flex justify-between items-center text-xs font-bold">
-                <span class="text-slate-200">${cat === 'Tổng ngân sách' ? langDict[state.currentLang].budgetGeneral : cat}</span>
+                <span class="${textTitleColor}">${cat === 'Tổng ngân sách' ? langDict[state.currentLang].budgetGeneral : cat}</span>
                 <div class="flex items-center gap-3">
-                    <span class="${pct >= state.warnRed ? 'text-rose-400' : 'text-slate-400'}">${spent.toLocaleString()} / ${limit.toLocaleString()}${state.currentCurrency}</span>
-                    <button onclick="deleteBudget('${cat}')" class="text-slate-600 hover:text-rose-400 transition-colors cursor-pointer"><i class="fa-solid fa-circle-xmark"></i></button>
+                    <span class="${pct >= state.warnRed ? 'text-rose-500' : 'text-slate-500'}">${spent.toLocaleString()} / ${limit.toLocaleString()}${state.currentCurrency}</span>
+                    <button onclick="deleteBudget('${cat}')" class="text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"><i class="fa-solid fa-circle-xmark"></i></button>
                 </div>
             </div>
-            <div class="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden border border-slate-800/60">
+            <div class="w-full bg-slate-200 dark:bg-slate-900 h-2.5 rounded-full overflow-hidden border border-slate-300/40 dark:border-slate-800/60">
                 <div class="${barColor} h-full transition-all duration-700 ease-out rounded-full" style="width: ${Math.min(pct, 100)}%"></div>
             </div>
             <div class="flex justify-between text-[10px] font-bold">
-                <span class="text-slate-500">${pct.toFixed(0)}% ${state.currentLang === 'vi' ? 'đã dùng' : 'used'}</span>
+                <span class="text-slate-500">${pct.toFixed(0)}% ${state.currentLang === 'vi' ? 'đã dùng' : 'used'}${remainingLabel}</span>
                 <span class="${textStyle}">${warningText}</span>
             </div>
         `;

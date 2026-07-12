@@ -21,7 +21,12 @@ export function renderReport() {
 
     if (state.reportChart) state.reportChart.destroy();
 
-    const ctx = document.getElementById('reportChart').getContext('2d');
+    const canvas = document.getElementById('reportChart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+
+    const labelColor = state.isDarkMode ? '#94a3b8' : '#475569';
+
     state.reportChart = new Chart(ctx, {
         type: 'doughnut',
         data: {
@@ -30,8 +35,8 @@ export function renderReport() {
                 data: hasData ? values : [1],
                 backgroundColor: hasData ?
                     ['#2dd4bf', '#3b82f6', '#a855f7', '#f43f5e', '#f97316', '#eab308', '#10b981', '#64748b'] :
-                    ['#1e293b'],
-                borderColor: '#0f172a',
+                    (state.isDarkMode ? ['#1e293b'] : ['#e2e8f0']),
+                borderColor: state.isDarkMode ? '#0f172a' : '#ffffff',
                 borderWidth: 2
             }]
         },
@@ -42,7 +47,7 @@ export function renderReport() {
             plugins: {
                 legend: {
                     position: 'bottom',
-                    labels: { color: '#94a3b8', boxWidth: 12, font: { size: 11, weight: '600' } }
+                    labels: { color: labelColor, boxWidth: 12, font: { size: 11, weight: '600' } }
                 }
             },
             animation: {
